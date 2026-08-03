@@ -2,11 +2,17 @@
  * Selectors + the "Access-cascade" business rule, kept separate from React so
  * they are easy to reason about and unit-test later.
  *
- * The rule (mirrors the prototype and the backend's authoritative version):
- * within one app (one domain, inside one group), the "Access" permission is
- * the master switch. Revoking Access implies every other permission in that
- * app is revoked too, and those siblings become locked (can't be edited) until
- * Access is set back to Keep.
+ * The rule: within one app (one domain, inside one group), the "Access"
+ * permission is the master switch. Revoking Access implies every other
+ * permission in that app is revoked too, and those siblings become locked
+ * (can't be edited) until Access is set back to Keep.
+ *
+ * SCOPE (decision "Path A"): the cascade is confined to a single
+ * (person, group, app) — revoking a DIRECT grant's Access does NOT touch access
+ * the person also holds to the same app via a POSITION. This deliberately
+ * diverges from the original prototype's broader (person, app) sweep, and must
+ * stay consistent with backend report_service.py — parity/check_parity.py
+ * guards that both agree.
  */
 import type { AuditPerson, AuditDecision } from '../types/api'
 

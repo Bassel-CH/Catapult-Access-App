@@ -41,6 +41,12 @@ class ReportService:
         within one person + group + app, if "Access" is revoked, every other
         permission in that app is forced to 'revoke' as well.
 
+        SCOPE (decision "Path A", guarded by parity/check_parity.py): the
+        cascade stays within a single (person, group, app). Revoking a DIRECT
+        grant's Access does NOT revoke access the person also holds to the same
+        app via a POSITION — those are separate groups. This is a deliberate
+        divergence from the original prototype's broader (person, app) sweep.
+
         Returns id -> 'keep' | 'revoke' | 'none'.
         """
         effective: Dict[str, str] = {}

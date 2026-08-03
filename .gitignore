@@ -17,3 +17,4 @@ tools/.parity-*.json
 # Runtime dirs. temp_uploads would hold real permissions data if ever written to.
 backend/temp_uploads/
 exports/
+backend/tests/sample_report.html
