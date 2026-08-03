@@ -1,0 +1,14 @@
+# Backend dependencies for the Audit Filter API.
+# Version floors below are the minimums known to work with this code
+# (verified against fastapi 0.141, pandas 2.3, pydantic 2.13).
+# The CSV service is written to be pandas 3.0-safe (uses .map, not .applymap).
+#
+# To reproduce your exact environment instead, run:  pip freeze > requirements.txt
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pandas>=2.2
+pydantic>=2.7
+python-multipart>=0.0.9
+
+# Test-only (drives the app via TestClient)
+httpx>=0.27

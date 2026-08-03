@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Department Access Audit</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --panel:#ffffff; --ink:#1f2430; --muted:#6b7280; --line:#e3e6ec;
+    --brand:#2f5fef; --brand-ink:#1b3aa8; --brand-soft:#eaf0ff;
+    --keep:#127a4b; --keep-soft:#e5f4ec; --revoke:#b3261e; --revoke-soft:#fbeaea;
+    --flag:#b45309; --flag-soft:#fdf1e0; --radius:12px;
+    --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;font-size:15px}
+  .wrap{max-width:1040px;margin:0 auto;padding:24px 20px 90px}
+  h1{font-size:22px;margin:0;font-weight:600}
+  h2{font-size:17px;margin:0 0 4px;font-weight:600}
+  .sub{color:var(--muted);font-size:13px;margin:0}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+  .steps{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+  .step{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:#fff;border:1px solid var(--line)}
+  .step.active{background:var(--brand-soft);border-color:#c9d7ff;color:var(--brand-ink);font-weight:600}
+  .step.done{color:var(--keep)}
+  .step .dot{width:20px;height:20px;border-radius:50%;background:var(--line);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700}
+  .step.active .dot{background:var(--brand)}
+  .step.done .dot{background:var(--keep)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
+  .panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+  label.fld{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+  input[type=text],input[type=date],textarea,select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff;color:var(--ink)}
+  textarea{resize:vertical;min-height:38px}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--brand-soft);border-color:var(--brand)}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:180px}
+  .btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 16px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer;transition:.12s}
+  .btn:hover{border-color:#c4cad6}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.primary:hover{background:var(--brand-ink)}
+  .btn.primary:disabled{background:#aab6d8;border-color:#aab6d8;cursor:not-allowed}
+  .btn.ghost{background:transparent}
+  .btn.sm{padding:5px 10px;font-size:13px}
+  .muted{color:var(--muted)}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;background:#eef1f6;color:#41485a}
+  .pill.brand{background:var(--brand-soft);color:var(--brand-ink)}
+  .pill.flag{background:var(--flag-soft);color:var(--flag)}
+  .pill.keep{background:var(--keep-soft);color:var(--keep)}
+  .pill.revoke{background:var(--revoke-soft);color:var(--revoke)}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}
+  .grow{flex:1;min-width:0}
+  .chk{width:18px;height:18px;flex:none}
+  .hidden{display:none!important}
+  .callout{background:#fbfbfd;border:1px dashed var(--line);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted)}
+  .err{color:var(--revoke);font-size:13px;font-weight:600;margin-top:8px}
+  .foot{font-size:12px;color:var(--muted);text-align:center;margin-top:30px}
+  .count{font-variant-numeric:tabular-nums}
+
+  /* ---- user cards + nested tree ---- */
+  .list{display:block}
+  .ucard{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:#fff;overflow:hidden}
+  .ucard.sel{border-color:#bcd0ff;background:#fbfcff}
+  .ucard.flagged{border-color:#f0cf9b}
+  .uhead{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
+  .uhead:hover{background:#fafbfe}
+  .uhead .name{font-weight:600}
+  .uhead .meta{font-size:12px;color:var(--muted)}
+  .cv{color:var(--muted);transition:.15s;font-size:12px;flex:none;width:12px}
+  .ucard.open>.uhead .cv{transform:rotate(90deg)}
+  .node.open>.nhead .cv{transform:rotate(90deg)}
+  .ubody{display:none;padding:2px 12px 12px 30px}
+  .ucard.open>.ubody{display:block}
+  .node{border-left:2px solid #eef0f5;margin:3px 0}
+  .node>.nbody{display:none;padding-left:16px}
+  .node.open>.nbody{display:block}
+  .nhead{display:flex;align-items:center;gap:8px;padding:7px 8px;cursor:pointer;border-radius:6px}
+  .nhead:hover{background:#f7f8fb}
+  .nl{font-weight:600;font-size:14px}
+  .node.grp>.nhead .nl{color:var(--brand-ink)}
+  .node.direct>.nhead .nl{color:#8a5a00}
+  .cnt{font-size:11px;color:var(--muted);background:#eef1f6;border-radius:999px;padding:1px 7px}
+  .roll{font-size:11px}
+  .muted-pill{background:#eef1f6;color:#6b7280}
+  .bulks{margin-left:auto;display:flex;gap:6px}
+  .bulk{font-size:11px;padding:3px 8px;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;font-weight:600;color:var(--muted)}
+  .bulk:hover{border-color:#c4cad6}
+  .bulk[data-bulk="keep"].on{background:var(--keep);border-color:var(--keep);color:#fff}
+  .bulk[data-bulk="revoke"].on{background:var(--revoke);border-color:var(--revoke);color:#fff}
+  .uhead .bulks{margin-left:auto}
+  .leaf{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:6px;flex-wrap:wrap}
+  .leaf.hl{background:var(--flag-soft);box-shadow:inset 3px 0 0 var(--flag)}
+  .lmain{flex:1;min-width:170px}
+  .ln{font-weight:500}
+  .src{display:block;font-size:12px;color:var(--muted)}
+  .itn{font-size:12px;color:var(--flag);margin-top:2px}
+  .hlbtn{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:4px 9px;cursor:pointer;color:var(--muted);font-weight:600;flex:none}
+  .hlbtn.on{background:var(--flag-soft);border-color:#f0cf9b;color:var(--flag)}
+  .hlnote{flex-basis:100%;margin-top:4px}
+  .lnote{flex-basis:100%;margin-top:4px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+  .seg button{border:none;background:#fff;padding:5px 13px;font:inherit;font-weight:600;font-size:13px;cursor:pointer;color:var(--muted)}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button.keep.on{background:var(--keep);color:#fff}
+  .seg button.revoke.on{background:var(--revoke);color:#fff}
+  .seg button:disabled{opacity:.45;cursor:not-allowed}
+  .leaf.locked{opacity:.7}
+  .leaf.locked .ln::after{content:" · locked";font-size:11px;font-weight:600;color:var(--revoke)}
+
+  .progress{height:8px;background:#eef1f6;border-radius:999px;overflow:hidden}
+  .progress>i{display:block;height:100%;background:var(--brand);width:0;transition:.2s}
+  .sticky{position:sticky;bottom:0;background:linear-gradient(180deg,rgba(244,245,247,0),var(--bg) 40%);padding-top:14px;margin-top:8px}
+  .banner{display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:var(--brand-soft);border:1px solid #c9d7ff;border-radius:12px;padding:14px 16px;margin-bottom:16px}
+  .banner .k{font-size:12px;color:var(--brand-ink);opacity:.8;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+  .banner .v{font-weight:600}
+  .note-it{font-size:12px;color:var(--flag);margin-top:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <h1>Department Access Audit</h1>
+      <p class="sub">Rotating monthly permission review — IT setup, then manager sign-off.</p>
+    </div>
+    <div class="steps" id="steps">
+      <div class="step active" data-step="1"><span class="dot">1</span> IT setup</div>
+      <div class="step" data-step="2"><span class="dot">2</span> Manager audit</div>
+      <div class="step" data-step="3"><span class="dot">3</span> Report</div>
+    </div>
+  </div>
+
+  <!-- ============ PHASE 1 ============ -->
+  <section id="phase1">
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>1 · Load the report</h2><p class="sub">Upload the monthly organization export, or load sample data to explore.</p></div>
+      </div>
+      <div class="toolbar">
+        <label class="btn"><input type="file" id="csvFile" accept=".csv" class="hidden"> Upload CSV</label>
+        <button class="btn ghost" id="sampleBtn">Load sample data</button>
+        <span id="dataStatus" class="muted">No data loaded.</span>
+      </div>
+      <div id="colWarn" class="err hidden"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>2 · Define this audit</h2><p class="sub">Name the department under review and the month it covers.</p></div>
+      </div>
+      <div class="row">
+        <div>
+          <label class="fld" for="deptName">Department under audit</label>
+          <input type="text" id="deptName" placeholder="e.g. Patient Support">
+        </div>
+        <div>
+          <label class="fld" for="tfMonth">Audit month</label>
+          <select id="tfMonth"></select>
+        </div>
+        <div>
+          <label class="fld" for="tfYear">Year</label>
+          <select id="tfYear"></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>3 · Select users &amp; highlight points of interest</h2><p class="sub">Check who goes to the manager — selected people stay pinned to the top. Expand a user to highlight specific permissions that need a closer look; highlights carry into the manager screen.</p></div>
+        <span class="pill brand" id="selCount">0 selected</span>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="userSearch" placeholder="Search name, email, position…" style="max-width:280px">
+        <select id="posFilter" style="max-width:210px"><option value="">All positions</option></select>
+        <button class="btn sm" id="selAll">Select all shown</button>
+        <button class="btn sm" id="selNone">Clear</button>
+      </div>
+      <div id="userList" class="list"><div class="callout">Load data to see users.</div></div>
+    </div>
+
+    <div class="sticky">
+      <div class="panel" style="margin-bottom:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
+          <div>
+            <strong>Ready to hand off?</strong>
+            <p class="sub" style="margin:2px 0 0">Submitting locks this setup and opens the live audit page for the manager. IT selections become read-only.</p>
+          </div>
+          <button class="btn primary" id="lockBtn" disabled>Lock setup &amp; start manager audit →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 2 ============ -->
+  <section id="phase2" class="hidden">
+    <div class="banner" id="auditBanner"></div>
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>Manager review</h2><p class="sub">Expand each person into their positions, apps, then permissions. Keep or Revoke each one. Highlighted items are shaded.</p></div>
+        <div style="text-align:right;min-width:170px">
+          <div class="sub"><span id="decidedCount" class="count">0</span> / <span id="totalCount" class="count">0</span> decided</div>
+          <div class="progress" style="margin-top:6px;width:170px"><i id="progBar"></i></div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn sm" id="expandAll">Expand all</button>
+        <button class="btn sm" id="collapseAll">Collapse all</button>
+      </div>
+      <div id="auditList" class="list"></div>
+    </div>
+    <div class="sticky">
+      <div class="panel" style="margin-bottom:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
+          <div>
+            <strong>Finalize the audit</strong>
+            <p class="sub" style="margin:2px 0 0">Generates a read-only report you can save and share. <span id="undecidedNote" class="note-it"></span></p>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn ghost" id="backBtn">← Back to setup</button>
+            <button class="btn primary" id="finalizeBtn">Finalize &amp; generate report</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 3 ============ -->
+  <section id="phase3" class="hidden">
+    <div class="panel" style="text-align:center;padding:40px 20px">
+      <h2 style="justify-content:center">Report generated ✓</h2>
+      <p class="sub" style="max-width:520px;margin:8px auto 20px">Your read-only audit report is ready. It opens in a new tab and downloads as a standalone HTML file — no editing, optimized for viewing, with collapsible users, positions, apps and permissions.</p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn primary" id="openReport">Open report</button>
+        <button class="btn" id="downloadReport">Download .html</button>
+        <button class="btn ghost" id="restartBtn">Start a new audit</button>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">Prototype — Option 1 (standalone HTML). Data lives only in this browser tab.</p>
+</div>
+
+<script>
+/* ---------------- state ---------------- */
+const REQUIRED=["StaffId","StaffName","StaffEmailAddress","DomainName","PermissionName","PositionName","PermissionSource"];
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const S={
+  rows:[], users:new Map(), tree:new Map(),
+  selected:new Set(),
+  highlights:new Map(),   // leafId -> note
+  decisions:new Map(),    // leafId -> {decision:'keep'|'revoke'|null, note}
+  openNodes:new Set(),    // ids of expanded user cards / groups / apps
+  dept:"", periodLabel:""
+};
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+/* ---------------- month/year selects ---------------- */
+(function initPeriod(){
+  const m=document.getElementById("tfMonth"), y=document.getElementById("tfYear");
+  MONTHS.forEach((name,i)=>{const o=document.createElement("option");o.value=i;o.textContent=name;m.appendChild(o);});
+  const now=new Date(); m.value=now.getMonth();
+  const yr=now.getFullYear();
+  for(let v=yr-2;v<=yr+1;v++){const o=document.createElement("option");o.value=v;o.textContent=v;y.appendChild(o);}
+  y.value=yr;
+})();
+function periodText(){
+  if(S.periodLabel) return S.periodLabel;
+  const m=document.getElementById("tfMonth"), y=document.getElementById("tfYear");
+  return MONTHS[+m.value]+" "+y.value;
+}
+
+/* ---------------- mock data (reflects real column structure) ---------------- */
+function sampleRows(){
+  const APPS={
+    "Staff Portal":["Access","Edit Profile","View Directory"],
+    "Clinic Editor":["Access","Read: All Clinics","Edit Clinic Settings"],
+    "Patient Editor":["Access","View Patient","Edit Patient","Delete Patient"],
+    "Scheduling":["Access","Book Appointment","Cancel Appointment"],
+    "Billing":["Access","View Invoices","Post Payments","Issue Refund"],
+    "Reporting":["Access","Run Reports","Export Data"],
+    "Admin Console":["Access","Manage Users","Manage Roles","Audit Log"]
+  };
+  const POSITIONS={
+    "Team Lead":["Staff Portal","Clinic Editor","Reporting"],
+    "Patient Support":["Patient Editor","Scheduling","Staff Portal"],
+    "Clinician":["Patient Editor","Scheduling"],
+    "Front Desk":["Scheduling","Staff Portal"],
+    "Billing Specialist":["Billing","Reporting"],
+    "Administrator":["Admin Console","Reporting","Staff Portal"]
+  };
+  const firsts=["Amber","Jordan","Priya","Marcus","Elena","Tyler","Aisha","Diego","Nina","Grace","Omar","Lena","Cole","Maya","Ravi"];
+  const lasts=["Reyes","Kapoor","Nolan","Ford","Chen","Okafor","Santos","Bauer","Ellis","Kim","Haddad","Novak","Pratt","Singh","Diaz"];
+  const posNames=Object.keys(POSITIONS);
+  const rows=[]; let sid=4000;
+  const N=12;
+  for(let u=0;u<N;u++){
+    const id="S"+(sid++);
+    const fn=firsts[u%firsts.length], ln=lasts[(u*2+3)%lasts.length];
+    const name=fn+" "+ln, email=(fn+"."+ln).toLowerCase()+"@catapulthealth.com";
+    const k=1+Math.floor(Math.random()*2);
+    const mine=[...posNames].sort(()=>Math.random()-0.5).slice(0,k);
+    const primary=mine[0];
+    mine.forEach(pos=>{
+      POSITIONS[pos].forEach(app=>{
+        APPS[app].filter((a,i)=>i===0||Math.random()<0.6).forEach(act=>{
+          rows.push({StaffId:id,StaffName:name,StaffEmailAddress:email,DomainName:app,PermissionName:act,PositionName:pos,PermissionSource:"Position: "+pos});
+        });
+      });
+    });
+    if(Math.random()<0.75){
+      const app=Object.keys(APPS)[Math.floor(Math.random()*Object.keys(APPS).length)];
+      APPS[app].filter((a,i)=>i===0||Math.random()<0.5).forEach(act=>{
+        rows.push({StaffId:id,StaffName:name,StaffEmailAddress:email,DomainName:app,PermissionName:act,PositionName:primary,PermissionSource:"Direct assignment"});
+      });
+    }
+  }
+  return rows;
+}
+
+/* ---------------- csv parse ---------------- */
+function parseCSV(text){
+  const rows=[]; let i=0,f="",row=[],q=false; text=text.replace(/\r\n/g,"\n").replace(/\r/g,"\n");
+  while(i<text.length){const c=text[i];
+    if(q){ if(c=='"'){ if(text[i+1]=='"'){f+='"';i++;} else q=false; } else f+=c; }
+    else { if(c=='"')q=true; else if(c==','){row.push(f);f="";} else if(c=='\n'){row.push(f);rows.push(row);row=[];f="";} else f+=c; }
+    i++;
+  }
+  if(f.length||row.length){row.push(f);rows.push(row);}
+  if(!rows.length)return [];
+  const head=rows[0].map(h=>h.trim());
+  return rows.slice(1).filter(r=>r.some(x=>x&&x.trim())).map(r=>{const o={};head.forEach((h,j)=>o[h]=(r[j]||"").trim());return o;});
+}
+
+/* ---------------- grouping: position -> app -> action ---------------- */
+function groupUser(u){
+  const gm=new Map();
+  u.rows.forEach(r=>{
+    const isDirect=/direct/i.test(r.source||"");
+    const label=isDirect?"Direct assignment":("Position: "+(r.position||"Unspecified"));
+    if(!gm.has(label))gm.set(label,{label,direct:isDirect,apps:new Map()});
+    const g=gm.get(label);
+    if(!g.apps.has(r.domain))g.apps.set(r.domain,[]);
+    g.apps.get(r.domain).push({name:r.permission,source:r.source});
+  });
+  const groups=[...gm.values()].sort((a,b)=>(Number(a.direct)-Number(b.direct))||a.label.localeCompare(b.label));
+  groups.forEach((g,gi)=>{
+    g.apps=[...g.apps.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([app,acts],ai)=>({
+      app, actions:acts.map((ac,xi)=>({name:ac.name,source:ac.source,id:"L|"+u.id+"|"+gi+"|"+ai+"|"+xi}))
+    }));
+  });
+  return groups;
+}
+
+/* ---------------- ingest ---------------- */
+function ingest(rows){
+  const cols=rows.length?Object.keys(rows[0]):[];
+  const missing=REQUIRED.filter(c=>!cols.includes(c));
+  const warn=document.getElementById("colWarn");
+  if(missing.length){warn.textContent="Missing required column(s): "+missing.join(", ")+". Expected: "+REQUIRED.join(", ")+".";warn.classList.remove("hidden");return false;}
+  warn.classList.add("hidden");
+  S.rows=rows; S.users=new Map(); S.tree=new Map(); S.selected.clear(); S.highlights.clear(); S.decisions.clear(); S.openNodes.clear();
+  rows.forEach(r=>{
+    if(!S.users.has(r.StaffId))S.users.set(r.StaffId,{id:r.StaffId,name:r.StaffName,email:r.StaffEmailAddress,rows:[],positions:new Set(),apps:new Set(),permCount:0});
+    const u=S.users.get(r.StaffId);
+    u.rows.push({position:r.PositionName,domain:r.DomainName,permission:r.PermissionName,source:r.PermissionSource});
+    u.positions.add(r.PositionName); u.apps.add(r.DomainName); u.permCount++;
+  });
+  S.users.forEach(u=>S.tree.set(u.id,groupUser(u)));
+  document.getElementById("dataStatus").innerHTML="<strong>"+rows.length+"</strong> rows · <strong>"+S.users.size+"</strong> users loaded.";
+  const pf=document.getElementById("posFilter"); pf.innerHTML='<option value="">All positions</option>';
+  [...new Set([...S.users.values()].flatMap(u=>[...u.positions]))].sort().forEach(p=>{const o=document.createElement("option");o.value=p;o.textContent=p;pf.appendChild(o);});
+  renderUserList(); updateLock();
+  return true;
+}
+
+/* ---------------- tree builders ---------------- */
+function leafHTML(ac,mode,app){
+  const hl=S.highlights.has(ac.id);
+  const dataAttrs=' data-leaf="'+ac.id+'" data-name="'+esc(ac.name)+'" data-app="'+esc(app||"")+'"';
+  if(mode==="setup"){
+    return '<div class="leaf'+(hl?" hl":"")+'"'+dataAttrs+'>'+
+      '<div class="lmain"><span class="ln">'+esc(ac.name)+'</span><span class="src">'+esc(ac.source)+'</span></div>'+
+      '<button class="hlbtn'+(hl?" on":"")+'" data-hl="'+ac.id+'">'+(hl?"★ Highlighted":"☆ Highlight")+'</button>'+
+      (hl?'<input class="hlnote" data-hlnote="'+ac.id+'" placeholder="Note for the manager (optional)" value="'+esc(S.highlights.get(ac.id)||"")+'">':'')+
+    '</div>';
+  }
+  const dv=S.decisions.get(ac.id)||{}, d=dv.decision;
+  return '<div class="leaf'+(hl?" hl":"")+'"'+dataAttrs+'>'+
+    '<div class="lmain"><span class="ln">'+esc(ac.name)+(hl?' <span class="pill flag">★ IT highlight</span>':'')+'</span>'+
+      '<span class="src">'+esc(ac.source)+'</span>'+(hl&&S.highlights.get(ac.id)?'<div class="itn">IT: '+esc(S.highlights.get(ac.id))+'</div>':'')+'</div>'+
+    '<div class="seg"><button class="keep'+(d==="keep"?" on":"")+'" data-dec="keep" data-leaf="'+ac.id+'">Keep</button>'+
+      '<button class="revoke'+(d==="revoke"?" on":"")+'" data-dec="revoke" data-leaf="'+ac.id+'">Revoke</button></div>'+
+    '<input class="lnote" data-note="'+ac.id+'" placeholder="Note (optional)" value="'+esc(dv.note||"")+'">'+
+  '</div>';
+}
+function buildTree(u,mode){
+  const groups=S.tree.get(u.id)||[]; let h="";
+  groups.forEach((g,gi)=>{
+    const gid="G|"+u.id+"|"+gi;
+    h+='<div class="node grp'+(g.direct?" direct":"")+(S.openNodes.has(gid)?" open":"")+'">'+
+      '<div class="nhead" data-node="'+gid+'"><span class="cv">▶</span><span class="nl">'+esc(g.label)+'</span>'+
+        (mode==="audit"?'<span class="roll pill muted-pill"></span><span class="bulks"><button class="bulk" data-bulk="keep">Keep all</button><button class="bulk" data-bulk="revoke">Revoke all</button></span>':'')+'</div><div class="nbody">';
+    g.apps.forEach((a,ai)=>{
+      const aid="A|"+u.id+"|"+gi+"|"+ai;
+      h+='<div class="node app'+(S.openNodes.has(aid)?" open":"")+'">'+
+        '<div class="nhead" data-node="'+aid+'"><span class="cv">▶</span><span class="nl">'+esc(a.app)+'</span>'+
+          '<span class="cnt">'+a.actions.length+'</span>'+
+          (mode==="audit"?'<span class="roll pill muted-pill"></span><span class="bulks"><button class="bulk" data-bulk="keep">Keep all</button><button class="bulk" data-bulk="revoke">Revoke all</button></span>':'')+
+        '</div><div class="nbody">';
+      a.actions.forEach(ac=>{h+=leafHTML(ac,mode,a.app);});
+      h+='</div></div>';
+    });
+    h+='</div></div>';
+  });
+  return h;
+}
+function hlCountFor(uid){let n=0;S.highlights.forEach((v,k)=>{if(k.startsWith("L|"+uid+"|"))n++;});return n;}
+
+/* ---------------- phase 1 render ---------------- */
+function userCardSetup(u){
+  const sel=S.selected.has(u.id), uid="U|"+u.id, hc=hlCountFor(u.id);
+  return '<div class="ucard'+(sel?" sel":"")+(S.openNodes.has(uid)?" open":"")+'" data-uid="'+u.id+'">'+
+    '<div class="uhead" data-node="'+uid+'">'+
+      '<input type="checkbox" class="chk" data-id="'+u.id+'" '+(sel?"checked":"")+'>'+
+      '<span class="cv">▶</span>'+
+      '<div class="grow"><div class="name">'+esc(u.name)+'</div>'+
+      '<div class="meta">'+esc(u.email)+' · '+u.permCount+' permissions</div></div>'+
+      (hc?'<span class="pill flag">'+hc+' highlighted</span>':'')+
+    '</div><div class="ubody">'+buildTree(u,"setup")+'</div></div>';
+}
+function renderUserList(){
+  const q=document.getElementById("userSearch").value.toLowerCase().trim();
+  const pf=document.getElementById("posFilter").value;
+  const list=document.getElementById("userList");
+  let users=[...S.users.values()].filter(u=>{
+    if(S.selected.has(u.id))return true;               // selected always visible
+    if(pf && !u.positions.has(pf))return false;
+    if(q && !(u.name+" "+u.email+" "+[...u.positions].join(" ")).toLowerCase().includes(q))return false;
+    return true;
+  }).sort((a,b)=>(Number(S.selected.has(b.id))-Number(S.selected.has(a.id)))||a.name.localeCompare(b.name));
+  list.innerHTML=users.length?users.map(userCardSetup).join(""):'<div class="callout">No users match.</div>';
+}
+
+/* ---------------- shared: expand/collapse ---------------- */
+function toggleNode(head){
+  const id=head.dataset.node;
+  const node=head.closest(".node")||head.closest(".ucard");
+  node.classList.toggle("open");
+  if(S.openNodes.has(id))S.openNodes.delete(id); else S.openNodes.add(id);
+}
+
+/* ---------------- phase 1 events ---------------- */
+document.getElementById("sampleBtn").onclick=()=>ingest(sampleRows());
+document.getElementById("csvFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>ingest(parseCSV(r.result));r.readAsText(f);};
+document.getElementById("userSearch").oninput=renderUserList;
+document.getElementById("posFilter").onchange=renderUserList;
+document.getElementById("selAll").onclick=()=>{document.querySelectorAll("#userList .chk").forEach(c=>S.selected.add(c.dataset.id));updateLock();renderUserList();};
+document.getElementById("selNone").onclick=()=>{S.selected.clear();updateLock();renderUserList();};
+["deptName"].forEach(id=>document.getElementById(id).addEventListener("input",updateLock));
+
+document.getElementById("userList").addEventListener("change",e=>{
+  const chk=e.target.closest(".chk"); if(!chk)return;
+  if(chk.checked)S.selected.add(chk.dataset.id); else S.selected.delete(chk.dataset.id);
+  updateLock(); renderUserList();
+});
+document.getElementById("userList").addEventListener("click",e=>{
+  const hl=e.target.closest(".hlbtn");
+  if(hl){const k=hl.dataset.hl; if(S.highlights.has(k))S.highlights.delete(k); else S.highlights.set(k,""); renderUserList(); return;}
+  const tog=e.target.closest("[data-node]");
+  if(tog && !e.target.closest("button,input")){toggleNode(tog);}
+});
+document.getElementById("userList").addEventListener("input",e=>{
+  const n=e.target.closest(".hlnote"); if(n)S.highlights.set(n.dataset.hlnote,n.value);
+});
+
+function updateLock(){
+  document.getElementById("selCount").textContent=S.selected.size+" selected";
+  document.getElementById("lockBtn").disabled=!(S.selected.size>0 && document.getElementById("deptName").value.trim().length>0);
+}
+
+/* ---------------- lock -> phase 2 ---------------- */
+document.getElementById("lockBtn").onclick=()=>{
+  S.dept=document.getElementById("deptName").value.trim();
+  S.periodLabel=periodText();
+  buildAudit(); showPhase(2);
+};
+document.getElementById("backBtn").onclick=()=>{S.periodLabel="";showPhase(1);};
+
+function showPhase(n){
+  [1,2,3].forEach(p=>document.getElementById("phase"+p).classList.toggle("hidden",p!==n));
+  document.querySelectorAll("#steps .step").forEach(s=>{const k=+s.dataset.step;s.classList.toggle("active",k===n);s.classList.toggle("done",k<n);});
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* ---------------- phase 2 render ---------------- */
+function userCardAudit(u){
+  const uid="U|"+u.id, anyHl=hlCountFor(u.id)>0;
+  return '<div class="ucard'+(anyHl?" flagged":"")+(S.openNodes.has(uid)?" open":"")+'" data-uid="'+u.id+'">'+
+    '<div class="uhead" data-node="'+uid+'"><span class="cv">▶</span>'+
+      '<div class="grow"><div class="name">'+esc(u.name)+(anyHl?' <span class="pill flag">★ has highlights</span>':'')+'</div>'+
+      '<div class="meta">'+esc(u.email)+' · '+u.permCount+' permissions</div></div>'+
+      '<span class="bulks"><button class="bulk" data-bulk="keep">Keep all</button><button class="bulk" data-bulk="revoke">Revoke all</button></span>'+
+      '<span class="upill muted">0/'+u.permCount+'</span>'+
+    '</div><div class="ubody">'+buildTree(u,"audit")+'</div></div>';
+}
+function buildAudit(){
+  document.getElementById("auditBanner").innerHTML=
+    '<div><div class="k">Department</div><div class="v">'+esc(S.dept)+'</div></div>'+
+    '<div><div class="k">Month</div><div class="v">'+esc(S.periodLabel)+'</div></div>'+
+    '<div><div class="k">Users</div><div class="v">'+S.selected.size+'</div></div>'+
+    '<div><div class="k">Status</div><div class="v"><span class="pill brand">Setup locked</span></div></div>';
+  const chosen=[...S.selected].map(id=>S.users.get(id)).sort((a,b)=>a.name.localeCompare(b.name));
+  document.getElementById("auditList").innerHTML=chosen.map(userCardAudit).join("");
+  updateAuditRollups();
+}
+
+/* ---------------- phase 2 events ---------------- */
+document.getElementById("auditList").addEventListener("click",e=>{
+  const bulk=e.target.closest(".bulk");
+  if(bulk){const scope=bulk.closest(".node")||bulk.closest(".ucard"), val=bulk.dataset.bulk;
+    scope.querySelectorAll(".leaf[data-leaf]").forEach(l=>{const cur=S.decisions.get(l.dataset.leaf)||{};cur.decision=val;S.decisions.set(l.dataset.leaf,cur);});
+    scope.querySelectorAll(".leaf .seg").forEach(seg=>{const key=seg.closest(".leaf").dataset.leaf;const d=(S.decisions.get(key)||{}).decision;seg.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.dec===d));});
+    updateAuditRollups(); return;
+  }
+  const dec=e.target.closest("[data-dec]");
+  if(dec && dec.disabled) return;
+  if(dec){const key=dec.dataset.leaf,val=dec.dataset.dec;const cur=S.decisions.get(key)||{};cur.decision=cur.decision===val?null:val;S.decisions.set(key,cur);
+    dec.closest(".seg").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.dec===cur.decision));
+    const leaf=dec.closest(".leaf");
+    if(cur.decision==="revoke" && (leaf.dataset.name||"").trim().toLowerCase()==="access") cascadeRevokeApp(leaf);
+    updateAuditRollups(); return;
+  }
+  const tog=e.target.closest("[data-node]");
+  if(tog && !e.target.closest("button,input")){toggleNode(tog);}
+});
+document.getElementById("auditList").addEventListener("input",e=>{
+  const n=e.target.closest(".lnote"); if(n){const cur=S.decisions.get(n.dataset.note)||{};cur.note=n.value;S.decisions.set(n.dataset.note,cur);}
+});
+document.getElementById("expandAll").onclick=()=>setAllOpen(true);
+document.getElementById("collapseAll").onclick=()=>setAllOpen(false);
+function setAllOpen(open){
+  document.querySelectorAll("#auditList .ucard").forEach(c=>{c.classList.toggle("open",open);const id="U|"+c.dataset.uid;open?S.openNodes.add(id):S.openNodes.delete(id);});
+  document.querySelectorAll("#auditList .node").forEach(n=>{n.classList.toggle("open",open);const id=n.querySelector(":scope > .nhead").dataset.node;open?S.openNodes.add(id):S.openNodes.delete(id);});
+}
+
+function applyAccessLocks(){
+  document.querySelectorAll("#auditList .ucard").forEach(card=>{
+    const revokedApps=new Set();
+    card.querySelectorAll('.leaf[data-leaf]').forEach(l=>{
+      if((l.dataset.name||"").trim().toLowerCase()==="access" && (S.decisions.get(l.dataset.leaf)||{}).decision==="revoke") revokedApps.add(l.dataset.app);
+    });
+    card.querySelectorAll('.leaf[data-leaf]').forEach(l=>{
+      const isAccess=(l.dataset.name||"").trim().toLowerCase()==="access";
+      const lock=!isAccess && revokedApps.has(l.dataset.app);
+      l.classList.toggle("locked",lock);
+      const seg=l.querySelector(".seg"); if(seg)seg.querySelectorAll("button").forEach(b=>{b.disabled=lock;});
+      if(lock)l.title="Locked — app Access is revoked. Set Access back to Keep to edit."; else l.removeAttribute("title");
+    });
+  });
+}
+function cascadeRevokeApp(accessLeaf){
+  const app=accessLeaf.dataset.app, card=accessLeaf.closest(".ucard");
+  if(!card)return;
+  card.querySelectorAll('.leaf[data-leaf]').forEach(l=>{
+    if(l.dataset.app!==app)return;
+    const c=S.decisions.get(l.dataset.leaf)||{}; c.decision="revoke"; S.decisions.set(l.dataset.leaf,c);
+    const seg=l.querySelector(".seg"); if(seg)seg.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.dec==="revoke"));
+  });
+}
+function scopeState(leaves){
+  if(!leaves.length)return null; let allK=true,allR=true;
+  leaves.forEach(l=>{const d=(S.decisions.get(l.dataset.leaf)||{}).decision;if(d!=="keep")allK=false;if(d!=="revoke")allR=false;});
+  return allK?"keep":allR?"revoke":null;
+}
+function markBulks(bulks,state){ if(bulks)bulks.querySelectorAll(".bulk").forEach(b=>b.classList.toggle("on",b.dataset.bulk===state)); }
+function updateAuditRollups(){
+  document.querySelectorAll("#auditList .node").forEach(node=>{
+    const leaves=node.querySelectorAll(".leaf[data-leaf]"); let k=0,r=0;
+    leaves.forEach(l=>{const d=(S.decisions.get(l.dataset.leaf)||{}).decision;if(d==="keep")k++;else if(d==="revoke")r++;});
+    const roll=node.querySelector(":scope > .nhead .roll");
+    if(roll){roll.textContent=(k+r)+"/"+leaves.length;roll.className="roll pill "+((leaves.length&&k+r===leaves.length)?"keep":"muted-pill");}
+    markBulks(node.querySelector(":scope > .nhead .bulks"), scopeState(leaves));
+  });
+  document.querySelectorAll("#auditList .ucard").forEach(card=>{
+    const leaves=card.querySelectorAll(".leaf[data-leaf]"); let dec=0;
+    leaves.forEach(l=>{if((S.decisions.get(l.dataset.leaf)||{}).decision)dec++;});
+    const pill=card.querySelector(".upill"); if(pill){pill.textContent=dec+"/"+leaves.length;pill.className="upill "+(leaves.length&&dec===leaves.length?"pill keep":"muted");}
+    markBulks(card.querySelector(":scope > .uhead .bulks"), scopeState(leaves));
+  });
+  applyAccessLocks();
+  refreshProgress();
+}
+function refreshProgress(){
+  const leaves=document.querySelectorAll("#auditList .leaf[data-leaf]"); let dec=0;
+  leaves.forEach(l=>{if((S.decisions.get(l.dataset.leaf)||{}).decision)dec++;});
+  const total=leaves.length;
+  document.getElementById("totalCount").textContent=total;
+  document.getElementById("decidedCount").textContent=dec;
+  document.getElementById("progBar").style.width=(total?Math.round(dec/total*100):0)+"%";
+  document.getElementById("undecidedNote").textContent=dec<total?(total-dec)+" permission(s) still undecided — they'll be marked 'No decision' in the report.":"";
+}
+
+/* ---------------- phase 3: report ---------------- */
+let reportBlobUrl=null,reportHtml="";
+document.getElementById("finalizeBtn").onclick=()=>{reportHtml=buildReport();if(reportBlobUrl)URL.revokeObjectURL(reportBlobUrl);reportBlobUrl=URL.createObjectURL(new Blob([reportHtml],{type:"text/html"}));showPhase(3);};
+document.getElementById("openReport").onclick=()=>window.open(reportBlobUrl,"_blank");
+document.getElementById("downloadReport").onclick=()=>{const a=document.createElement("a");a.href=reportBlobUrl;a.download="access-audit-"+S.dept.replace(/\s+/g,"-").toLowerCase()+".html";a.click();};
+document.getElementById("restartBtn").onclick=()=>location.reload();
+
+function buildReport(){
+  const chosen=[...S.selected].map(id=>S.users.get(id)).sort((a,b)=>a.name.localeCompare(b.name));
+  let K=0,R=0,N=0,body="";
+  chosen.forEach(u=>{
+    const groups=S.tree.get(u.id)||[]; let uK=0,uR=0,gh="";
+    groups.forEach(g=>{
+      let aH="";
+      g.apps.forEach(a=>{
+        let leafH="",aK=0,aR=0;
+        a.actions.forEach(ac=>{
+          const dv=S.decisions.get(ac.id)||{},d=dv.decision,hl=S.highlights.has(ac.id);
+          if(d==="keep"){K++;uK++;aK++;}else if(d==="revoke"){R++;uR++;aR++;}else N++;
+          const badge=d==="keep"?'<span class="b keep">Keep</span>':d==="revoke"?'<span class="b revoke">Revoke</span>':'<span class="b none">No decision</span>';
+          leafH+='<div class="leaf'+(d==="revoke"?" rev":"")+(hl?" hl":"")+'"><div class="lm"><span class="ln">'+esc(ac.name)+(hl?' <span class="b fl">★</span>':'')+'</span><span class="src">'+esc(ac.source)+'</span>'+
+            (hl&&S.highlights.get(ac.id)?'<div class="itn">IT: '+esc(S.highlights.get(ac.id))+'</div>':'')+
+            (dv.note?'<div class="pnote">'+esc(dv.note)+'</div>':'')+'</div>'+badge+'</div>';
+        });
+        aH+='<details class="app"><summary><span class="s-l">'+esc(a.app)+'</span><span class="s-c"><span class="b keep">'+aK+'</span><span class="b revoke">'+aR+'</span></span></summary>'+leafH+'</details>';
+      });
+      gh+='<details class="grp"><summary><span class="s-l">'+esc(g.label)+'</span></summary>'+aH+'</details>';
+    });
+    body+='<details class="uc"><summary><span class="s-name">'+esc(u.name)+' <span class="mut">· '+esc([...u.positions].join(", "))+'</span></span><span class="s-tags"><span class="b keep">'+uK+' keep</span><span class="b revoke">'+uR+' revoke</span></span></summary>'+gh+'</details>';
+  });
+  const gen=new Date().toLocaleString();
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+  '<title>Access Audit — '+esc(S.dept)+'</title><style>'+
+  'body{margin:0;background:#f4f5f7;color:#1f2430;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.5}'+
+  '.w{max-width:940px;margin:0 auto;padding:28px 20px 70px}h1{font-size:22px;margin:0 0 4px}.sub{color:#6b7280;font-size:13px;margin:0}'+
+  '.ro{display:inline-block;background:#eef1f6;color:#41485a;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;margin-top:8px}'+
+  '.ban{display:flex;gap:22px;flex-wrap:wrap;background:#fff;border:1px solid #e3e6ec;border-radius:12px;padding:16px;margin:16px 0}'+
+  '.ban .k{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.03em;font-weight:600}.ban .v{font-weight:600;font-size:15px}'+
+  '.sum{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px}.sc{flex:1;min-width:120px;background:#fff;border:1px solid #e3e6ec;border-radius:12px;padding:14px}'+
+  '.sc .n{font-size:24px;font-weight:700}.sc .l{font-size:12px;color:#6b7280}'+
+  '.tb{margin:6px 0 14px}.tb button{font:inherit;font-size:13px;font-weight:600;background:#fff;border:1px solid #e3e6ec;border-radius:8px;padding:6px 12px;cursor:pointer;margin-right:8px}'+
+  'details{border:1px solid #e3e6ec;border-radius:10px;background:#fff;margin:8px 0}'+
+  'details.grp,details.app{margin:6px 0;border-color:#eef0f5}'+
+  'summary{cursor:pointer;padding:11px 14px;display:flex;justify-content:space-between;gap:12px;align-items:center;list-style:none}'+
+  'summary::-webkit-details-marker{display:none}summary::before{content:"\\25B6";color:#9aa1af;font-size:11px;margin-right:8px;transition:.15s}'+
+  'details[open]>summary::before{transform:rotate(90deg)}'+
+  'details.uc>summary{font-weight:600}.uc.fl{border-color:#f0cf9b}'+
+  '.s-name{flex:1}.mut{color:#6b7280;font-weight:400}.s-l{flex:1;font-weight:600}.grp>summary .s-l{color:#1b3aa8}.app>summary .s-l{color:#1f2430}'+
+  '.s-tags,.s-c{display:flex;gap:6px}'+
+  '.ib{padding:2px 14px 10px 30px}'+
+  '.leaf{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:9px 14px 9px 40px;border-top:1px solid #f2f3f7}'+
+  '.leaf.hl{background:#fdf1e0}.leaf.rev .ln{text-decoration:line-through;color:#6b7280}'+
+  '.ln{font-weight:500}.src{display:block;font-size:12px;color:#6b7280}.itn{font-size:12px;color:#b45309;margin-top:2px}.pnote{font-size:12px;color:#41485a;font-style:italic;margin-top:2px}'+
+  '.b{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}'+
+  '.b.keep{background:#e5f4ec;color:#127a4b}.b.revoke{background:#fbeaea;color:#b3261e}.b.none{background:#eef1f6;color:#6b7280}.b.fl{background:#fdf1e0;color:#b45309}'+
+  '.foot{font-size:12px;color:#6b7280;text-align:center;margin-top:26px}'+
+  '</style></head><body><div class="w">'+
+  '<h1>Department Access Audit — '+esc(S.dept)+'</h1><p class="sub">Manager review · generated '+esc(gen)+'</p><span class="ro">Read-only report</span>'+
+  '<div class="ban"><div><div class="k">Department</div><div class="v">'+esc(S.dept)+'</div></div>'+
+  '<div><div class="k">Month</div><div class="v">'+esc(S.periodLabel)+'</div></div>'+
+  '<div><div class="k">Users reviewed</div><div class="v">'+chosen.length+'</div></div>'+
+  '<div><div class="k">Permissions</div><div class="v">'+(K+R+N)+'</div></div></div>'+
+  '<div class="sum"><div class="sc"><div class="n" style="color:#127a4b">'+K+'</div><div class="l">Kept</div></div>'+
+  '<div class="sc"><div class="n" style="color:#b3261e">'+R+'</div><div class="l">Revoked</div></div>'+
+  '<div class="sc"><div class="n" style="color:#6b7280">'+N+'</div><div class="l">No decision</div></div></div>'+
+  '<div class="tb"><button onclick="document.querySelectorAll(&quot;details&quot;).forEach(function(d){d.open=true})">Expand all</button>'+
+  '<button onclick="document.querySelectorAll(&quot;details&quot;).forEach(function(d){d.open=false})">Collapse all</button></div>'+
+  body+
+  '<p class="foot">Generated by Department Access Audit (prototype). This report is view-only.</p></div></body></html>';
+}
+</script>
+</body>
+</html>
