@@ -65,6 +65,22 @@ class CSVService:
             df = df[df["PermissionSource"].isin(VALID_PERMISSION_SOURCES)].copy()
             rows_dropped = rows_before - len(df)
 
+            # Nothing survived the drop. Previously this returned success with
+            # row_count 0, which let the UI open an audit over an empty dataset
+            # and produce a report attesting to nothing. For a compliance tool
+            # that silent no-op is worse than a hard failure, so refuse it.
+            if len(df) == 0:
+                raise InvalidCSVError(
+                    "No permission rows found in this file"
+                    + (
+                        f" — all {rows_dropped} row(s) were export noise "
+                        "(divider or '(N rows affected)' footer). "
+                        if rows_dropped
+                        else " — it has the right columns but no data rows. "
+                    )
+                    + "Check that this is the full report export."
+                )
+
             # Clean the data
             df = self._clean_dataframe(df)
 
