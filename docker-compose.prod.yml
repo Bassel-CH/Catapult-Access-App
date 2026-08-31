@@ -1,0 +1,44 @@
+# docker-compose.prod.yml  —  PROD  (opt-in, NOT auto-applied)
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up
+#
+# Because you name files explicitly with -f, the dev override is NOT loaded —
+# you get base + this file only. This runs the real images: uvicorn without
+# --reload, and the frontend nginx image serving built static files.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# SEAM — NOT YET BUILT: the /api edge proxy.
+#
+# The frontend's nginx.conf DELIBERATELY does not proxy /api (its own comment
+# says so). In dev, Vite's proxy handles that. In prod, nothing does yet — so
+# as written, the frontend served here cannot reach the backend. That routing
+# belongs to an edge proxy (nginx / Traefik / Caddy) that is the NEXT phase of
+# your infra work. This file is intentionally left incomplete at that seam
+# rather than inventing a proxy you haven't designed.
+#
+# When you build it, it becomes a third service here that:
+#   - listens on 80/443
+#   - serves the frontend static files (or proxies to the frontend container)
+#   - routes /api/* to backend:8000
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  backend:
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    # No volumes, no user override, no --reload: the baked-in prod image runs
+    # exactly as you built and tested it, as non-root appuser.
+
+  frontend:
+    ports:
+      - "8080:80"                 # nginx serves the built SPA on container port 80
+    restart: unless-stopped
+    # Build-time API URL: empty = same-origin /api, which the (future) edge proxy
+    # will route. If you point at an absolute backend URL instead, that origin
+    # must list this app in backend CORS_ORIGINS.
+    build:
+      context: ./frontend
+      args:
+        VITE_USE_MOCKS: "false"
+        VITE_API_BASE_URL: ""

@@ -4,7 +4,7 @@
  * interest. Highlights are keyed by the audit-tree permission ids, so they
  * carry straight into the manager screen.
  */
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react' 
 import type { AuditPerson } from '../types/api'
 import { useAudit } from '../state/AuditContext'
 import { api, usingMocks } from '../services/api'
@@ -122,7 +122,7 @@ function DefineAuditPanel() {
   )
 }
 
-function HighlightTree({ person }: { person: AuditPerson }) {
+const HighlightTree = memo(function HighlightTree({ person }: { person: AuditPerson }) {
   const { state, toggleHighlight, setHighlightNote } = useAudit()
   if (!person.found) return <p className="text-muted text-[13px] px-2 py-1">Not found in the loaded data.</p>
 
@@ -174,13 +174,14 @@ function HighlightTree({ person }: { person: AuditPerson }) {
       ))}
     </div>
   )
-}
+})
 
-function UserCard({ name }: { name: string }) {
+const UserCard = memo(function UserCard({ name }: { name: string }) {
   const { state, toggleSelect } = useAudit()
   const user = state.users.find((u) => u.name === name)!
   const person = state.treeCache[name]
   const selected = state.selected.includes(name)
+  const [open, setOpen] = useState(false)
   const hlCount = useMemo(() => {
     if (!person) return 0
     const ids = new Set(collectPermIds(person))
@@ -188,7 +189,10 @@ function UserCard({ name }: { name: string }) {
   }, [person, state.highlights])
 
   return (
-    <details className={`border rounded-xl mb-2.5 bg-white overflow-hidden ${selected ? 'border-[#bcd0ff] bg-[#fbfcff]' : 'border-line'}`}>
+    <details 
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+      className={`border rounded-xl mb-2.5 bg-white overflow-hidden ${selected ? 'border-[#bcd0ff] bg-[#fbfcff]' : 'border-line'}`}
+    >  
       <summary className="px-3.5 py-3 hover:bg-[#fafbfe]">
         <input
           type="checkbox"
@@ -204,11 +208,13 @@ function UserCard({ name }: { name: string }) {
         {hlCount > 0 && <Pill tone="flag">{hlCount} highlighted</Pill>}
       </summary>
       <div className="px-3 pb-3 pt-0.5">
-        {person ? <HighlightTree person={person} /> : <p className="text-muted text-[13px]">No tree available.</p>}
+        {open && (person
+          ? <HighlightTree person={person} />
+          : <p className="text-muted text-[13px]">No tree available.</p>)}
       </div>
     </details>
   )
-}
+}) 
 
 function SelectUsersPanel() {
   const { state, selectMany, clearSelect } = useAudit()
