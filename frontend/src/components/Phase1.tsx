@@ -7,6 +7,7 @@
 import { memo, useMemo, useState } from 'react' 
 import type { AuditPerson } from '../types/api'
 import { useAudit } from '../state/AuditContext'
+import PermissionSearch from './PermissionSearch'
 import { api, usingMocks } from '../services/api'
 import { collectPermIds } from '../lib/cascade'
 import { MONTHS } from '../lib/format'
@@ -241,13 +242,11 @@ function SelectUsersPanel() {
   }, [state.users, state.selected, search, posFilter])
 
   return (
-    <Panel>
-      <PanelHead
-        title="3 · Select users & highlight points of interest"
-        sub="Selected people stay pinned to the top. Expand a user to flag permissions that need a closer look."
-        right={<Pill tone="brand">{state.selected.length} selected</Pill>}
-      />
-      <div className="flex gap-2.5 items-center flex-wrap my-3.5">
+    <>
+      <p className="text-muted text-[13px] mt-0 mb-3.5">
+        Selected people stay pinned to the top. Expand a user to flag permissions that need a closer look.
+      </p>    
+      <div className="flex gap-2.5 items-center flex-wrap mb-3.5">
         <input className="field-input max-w-70" placeholder="Search name, email, position…"
           value={search} onChange={(e) => setSearch(e.target.value)} />
         <select className="field-input max-w-52" value={posFilter} onChange={(e) => setPosFilter(e.target.value)}>
@@ -262,13 +261,19 @@ function SelectUsersPanel() {
         : visible.length === 0
           ? <div className="bg-[#fbfbfd] border border-dashed border-line rounded-lg px-3.5 py-3 text-[13px] text-muted">No users match.</div>
           : visible.map((u) => <UserCard key={u.name} name={u.name} />)}
-    </Panel>
+    </>
   )
 }
 
 export default function Phase1() {
   const { state, periodLabel, startAudit, guard } = useAudit()
   const canLock = state.selected.length > 0 && state.dept.trim().length > 0
+  const [tab, setTab] = useState<'users' | 'search'>('users')
+
+  const tabClass = (on: boolean) =>
+    `text-[13px] font-semibold rounded-full px-3.5 py-1.5 border ${
+      on ? 'bg-brand-soft border-[#bcd0ff] text-brand-ink' : 'bg-white border-line text-muted hover:border-[#c4cad6]'
+    }`
 
   // Note: /api/export is the one endpoint keyed by StaffId, not StaffName —
   // hence the staffIds hop. Wrapped in guard() so a failure (or a lost backend
@@ -287,7 +292,19 @@ export default function Phase1() {
     <section>
       <UploadPanel />
       <DefineAuditPanel />
-      <SelectUsersPanel />
+      <Panel>
+        <div className="flex items-center gap-2.5 flex-wrap mb-3">
+          <span className="font-semibold">3 ·</span>
+          <button className={tabClass(tab === 'users')} onClick={() => setTab('users')}>
+            Select users &amp; highlight points of interest
+          </button>
+          <button className={tabClass(tab === 'search')} onClick={() => setTab('search')}>
+            Permission search
+          </button>
+          <span className="ml-auto"><Pill tone="brand">{state.selected.length} selected</Pill></span>
+        </div>
+        {tab === 'users' ? <SelectUsersPanel /> : <PermissionSearch />}
+      </Panel>
       <div className="sticky bottom-0 pt-3.5 mt-2">
         <Panel className="mb-0">
           <div className="flex justify-between items-center gap-3.5 flex-wrap">
