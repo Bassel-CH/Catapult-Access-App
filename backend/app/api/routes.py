@@ -144,7 +144,9 @@ async def review_document(request: ReviewDocumentRequest):
             reviews=reviews,
             audit_label=request.audit_label,
             manager_name=request.manager_name,
-            flagged=request.flagged,
+            flagged_by_person=csv_service.flagged_by_person(
+                request.staff_names, request.flagged
+            ),
         )
         return HTMLResponse(content=html)
     except NoDataLoadedError as e:

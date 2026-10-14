@@ -87,7 +87,10 @@ class ReviewDocumentRequest(BaseModel):
     staff_names: List[str] = Field(..., description="Selected staff names")
     audit_label: str = Field("", description="e.g. 'July - Operations'")
     manager_name: str = Field("", description="Manager the packet is for")
-    flagged: List[str] = Field(default_factory=list, description="Permissions to highlight")
+    flagged: List[str] = Field(
+        default_factory=list,
+        description="AuditPermission ids to highlight (same ids as /audit-tree)",
+    )
 
 
 class ExportRequest(BaseModel):

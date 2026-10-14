@@ -20,7 +20,7 @@ class DocumentService:
         reviews: List[Dict[str, Any]],
         audit_label: str,
         manager_name: str,
-        flagged: List[str],
+        flagged_by_person: Dict[str, Set[str]],
     ) -> str:
         """
         Build the full HTML page.
@@ -29,18 +29,22 @@ class DocumentService:
             reviews: list of per-person review objects from build_review()
             audit_label: e.g. "July - Operations"
             manager_name: manager the packet is for
-            flagged: permissions to highlight. Each entry matches either a
-                bare permission name ("Manage Scheduler Admin") or a
-                domain-qualified name ("Staff Admin::Read Permissions").
+            flagged_by_person: staff name -> set of "Domain::Permission" keys
+                to highlight for THAT person only (see
+                CSVService.flagged_by_person, which builds it from the UI's
+                permission ids).
 
         Returns:
             A complete HTML document as a string.
         """
-        flagged_set: Set[str] = set(flagged or [])
+        flagged_by_person = flagged_by_person or {}
         today = datetime.now().strftime("%B %d, %Y")
 
         people_html = "".join(
-            DocumentService._render_person(r, flagged_set) for r in reviews
+            DocumentService._render_person(
+                r, flagged_by_person.get(r["staff_name"], set())
+            )
+            for r in reviews
         )
 
         return f"""<!DOCTYPE html>
@@ -113,10 +117,7 @@ class DocumentService:
             domain = escape(group["domain"])
             rows = []
             for perm in group["permissions"]:
-                is_flagged = (
-                    perm in flagged
-                    or f"{group['domain']}::{perm}" in flagged
-                )
+                is_flagged = f"{group['domain']}::{perm}" in flagged
                 row_class = "row flagged" if is_flagged else "row"
                 flag_icon = '<span class="flag">&#9873;</span>' if is_flagged else ""
                 rows.append(f"""<tr class="{row_class}">
