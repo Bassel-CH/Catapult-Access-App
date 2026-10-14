@@ -34,6 +34,7 @@ services:
   frontend:
     # Replace the nginx image entirely with a bare node image for dev.
     image: node:22-alpine
+    build: !reset null
     working_dir: /app
     ports:
       - "5173:5173"               # Vite dev server
