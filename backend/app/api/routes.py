@@ -1,6 +1,8 @@
 """
 API routes/endpoints for the audit filter application
 """
+import logging
+import secrets
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
@@ -24,15 +26,29 @@ from ..services.document_service import DocumentService
 from ..services.export_service import ExportService
 from ..services.report_service import ReportService
 from ..services.session_service import SessionStore
-from ..utils.exceptions import (
-    InvalidCSVError,
-    NoDataLoadedError,
-    FilterError,
-    ExportError,
-)
+from ..utils.exceptions import InvalidCSVError, NoDataLoadedError
 
 # Create router
 router = APIRouter(prefix="/api", tags=["audit"])
+
+logger = logging.getLogger("audit.api")
+
+
+def internal_error(what: str) -> HTTPException:
+    """
+    Turn an unexpected exception into a safe 500.
+
+    The browser only gets `what` plus a short reference code; the full
+    exception (which can include file paths, code details or data values) goes
+    to the server log under that same code. Find it with:
+        docker compose logs backend | grep <code>
+
+    Call it only inside an `except` block — logger.exception() logs the
+    exception currently being handled.
+    """
+    ref = secrets.token_hex(3)
+    logger.exception("%s [ref %s]", what, ref)
+    return HTTPException(status_code=500, detail=f"{what}. Reference: {ref}")
 
 # One private dataset per upload, in memory only (see session_service.py).
 sessions = SessionStore()
@@ -102,11 +118,8 @@ async def upload_csv(
         raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error processing file: {str(e)}"
-        )
+    except Exception:
+        raise internal_error("Error processing file")
 
 
 @router.post("/filter", response_model=FilterResponse)
@@ -133,13 +146,8 @@ async def apply_filters(
 
     except NoDataLoadedError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except FilterError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error applying filters: {str(e)}"
-        )
+    except Exception:
+        raise internal_error("Error applying filters")
 
 
 @router.post("/review")
@@ -162,11 +170,8 @@ async def build_review(
         }
     except NoDataLoadedError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error building review: {str(e)}"
-        )
+    except Exception:
+        raise internal_error("Error building review")
 
 
 @router.post("/review-document", response_class=HTMLResponse)
@@ -191,8 +196,8 @@ async def review_document(
         return HTMLResponse(content=html)
     except NoDataLoadedError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error building document: {str(e)}")
+    except Exception:
+        raise internal_error("Error building document")
 
 @router.post("/audit-tree", response_model=AuditTreeResponse)
 async def audit_tree(
@@ -212,10 +217,8 @@ async def audit_tree(
         return AuditTreeResponse(success=True, people=people)
     except NoDataLoadedError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error building audit tree: {str(e)}"
-        )
+    except Exception:
+        raise internal_error("Error building audit tree")
 
 
 @router.post("/report", response_model=ReportResponse)
@@ -247,10 +250,8 @@ async def generate_report(
         )
     except NoDataLoadedError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error generating report: {str(e)}"
-        )
+    except Exception:
+        raise internal_error("Error generating report")
 
 
 @router.post("/export")
@@ -289,15 +290,10 @@ async def export_filtered_data(
 
     except NoDataLoadedError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except ExportError as e:
-        raise HTTPException(status_code=500, detail=str(e))
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error creating export: {str(e)}"
-        )
+    except Exception:
+        raise internal_error("Error creating export")
 
 
 @router.delete("/session")

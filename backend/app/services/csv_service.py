@@ -11,6 +11,8 @@ import pandas as pd
 from typing import Dict, List, Any, Optional, Set
 import io
 import hashlib
+import logging
+import secrets
 
 from ..config import REQUIRED_COLUMNS
 from ..utils.exceptions import InvalidCSVError, NoDataLoadedError, FilterError
@@ -20,6 +22,8 @@ from ..utils.exceptions import InvalidCSVError, NoDataLoadedError, FilterError
 # Everything else (header dividers like "----", the trailing
 # "(N rows affected)" footer, or blanks) is export noise and gets dropped.
 VALID_PERMISSION_SOURCES = ["Position-Based", "Direct Assignment"]
+
+logger = logging.getLogger("audit.csv")
 
 
 class CSVService:
@@ -102,9 +106,17 @@ class CSVService:
         except pd.errors.EmptyDataError:
             raise InvalidCSVError("CSV file is empty")
         except pd.errors.ParserError as e:
+            # pandas' parser messages are about the file's shape (e.g.
+            # "Expected 7 fields in line 12, saw 8") — safe and useful to show.
             raise InvalidCSVError(f"Error parsing CSV: {str(e)}")
-        except Exception as e:
-            raise InvalidCSVError(f"Error processing CSV: {str(e)}")
+        except Exception:
+            # Anything else is unexpected: keep internals out of the response.
+            ref = secrets.token_hex(3)
+            logger.exception("Unexpected error processing CSV [ref %s]", ref)
+            raise InvalidCSVError(
+                "Could not process this CSV. Check that it's the usual report "
+                f"export. Reference: {ref}"
+            )
 
     def _read_csv_with_encoding(self, file_content: bytes) -> pd.DataFrame:
         """

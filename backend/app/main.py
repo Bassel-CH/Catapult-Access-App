@@ -2,6 +2,9 @@
 Main FastAPI application
 Entry point for the Audit Filter API
 """
+import logging
+import secrets
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -13,6 +16,8 @@ from .config import (
     CORS_ORIGINS,
 )
 from .api.routes import router
+
+logger = logging.getLogger("audit.api")
 
 
 # Create FastAPI application
@@ -50,12 +55,17 @@ async def root():
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    """Catch any uncaught exceptions and return a clean error response."""
+    """
+    Last resort for anything the routes didn't catch. The browser gets a
+    generic message and a reference code; the details go to the server log.
+    """
+    ref = secrets.token_hex(3)
+    logger.error("Unhandled error [ref %s]", ref, exc_info=exc)
     return JSONResponse(
         status_code=500,
         content={
             "success": False,
             "error": "Internal server error",
-            "detail": str(exc),
+            "detail": f"Internal server error. Reference: {ref}",
         }
     )
