@@ -30,6 +30,7 @@ def _upload():
         files={"file": ("synthetic.csv", io.BytesIO(CSV.encode("cp1252")), "text/csv")},
     )
     assert r.status_code == 200, r.text
+    client.headers["X-Session-Id"] = r.json()["session_id"]
 
 
 def _perm_id(people, person, domain, name, group_key="direct"):

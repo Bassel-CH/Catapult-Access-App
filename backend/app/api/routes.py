@@ -1,7 +1,9 @@
 """
 API routes/endpoints for the audit filter application
 """
-from fastapi import APIRouter, UploadFile, File, HTTPException 
+from typing import Optional
+
+from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, Response
 
 from ..models.schemas import (
@@ -21,6 +23,7 @@ from ..services.csv_service import CSVService
 from ..services.document_service import DocumentService
 from ..services.export_service import ExportService
 from ..services.report_service import ReportService
+from ..services.session_service import SessionStore
 from ..utils.exceptions import (
     InvalidCSVError,
     NoDataLoadedError,
@@ -31,12 +34,33 @@ from ..utils.exceptions import (
 # Create router
 router = APIRouter(prefix="/api", tags=["audit"])
 
-# Create service instance (stores data in memory)
-csv_service = CSVService()
+# One private dataset per upload, in memory only (see session_service.py).
+sessions = SessionStore()
+
+
+def current_session(
+    x_session_id: Optional[str] = Header(None),
+) -> CSVService:
+    """
+    Look up the caller's dataset from the X-Session-Id header.
+
+    Missing, unknown and expired ids all get the same 400 "No data loaded"
+    answer — the frontend's isSessionLost() matches that phrase and offers the
+    re-upload recovery, so keep the wording.
+    """
+    service = sessions.get(x_session_id)
+    if service is None:
+        raise HTTPException(
+            status_code=400, detail="No data loaded. Please upload a CSV first."
+        )
+    return service
 
 
 @router.post("/upload", response_model=UploadResponse)
-async def upload_csv(file: UploadFile = File(...)):
+async def upload_csv(
+    file: UploadFile = File(...),
+    x_session_id: Optional[str] = Header(None),
+):
     """
     Upload audit CSV file for processing.
 
@@ -54,10 +78,17 @@ async def upload_csv(file: UploadFile = File(...)):
             )
 
         content = await file.read()
+        csv_service = CSVService()
         result = await csv_service.process_upload(content, file.filename)
+
+        # Only after a successful parse: drop the caller's previous dataset (if
+        # any) and start a new session. A failed upload leaves the old one alone.
+        sessions.end(x_session_id)
+        session_id = sessions.create(csv_service)
 
         return UploadResponse(
             success=True,
+            session_id=session_id,
             filename=file.filename,
             row_count=result["row_count"],
             rows_dropped=result["rows_dropped"],
@@ -79,7 +110,10 @@ async def upload_csv(file: UploadFile = File(...)):
 
 
 @router.post("/filter", response_model=FilterResponse)
-async def apply_filters(filters: FilterRequest):
+async def apply_filters(
+    filters: FilterRequest,
+    csv_service: CSVService = Depends(current_session),
+):
     """
     Apply filters to the loaded dataset.
 
@@ -109,7 +143,10 @@ async def apply_filters(filters: FilterRequest):
 
 
 @router.post("/review")
-async def build_review(request: ReviewRequest):
+async def build_review(
+    request: ReviewRequest,
+    csv_service: CSVService = Depends(current_session),
+):
     """
     Build a per-profile access review for the selected staff.
 
@@ -133,7 +170,10 @@ async def build_review(request: ReviewRequest):
 
 
 @router.post("/review-document", response_class=HTMLResponse)
-async def review_document(request: ReviewDocumentRequest):
+async def review_document(
+    request: ReviewDocumentRequest,
+    csv_service: CSVService = Depends(current_session),
+):
     """
     Generate the printable HTML access-review document for the selected
     staff. Returns HTML; open in a browser and Save as PDF.
@@ -155,7 +195,10 @@ async def review_document(request: ReviewDocumentRequest):
         raise HTTPException(status_code=500, detail=f"Error building document: {str(e)}")
 
 @router.post("/audit-tree", response_model=AuditTreeResponse)
-async def audit_tree(request: AuditTreeRequest):
+async def audit_tree(
+    request: AuditTreeRequest,
+    csv_service: CSVService = Depends(current_session),
+):
     """
     Build the reviewable access tree for the selected staff.
 
@@ -176,7 +219,10 @@ async def audit_tree(request: AuditTreeRequest):
 
 
 @router.post("/report", response_model=ReportResponse)
-async def generate_report(request: GenerateReportRequest):
+async def generate_report(
+    request: GenerateReportRequest,
+    csv_service: CSVService = Depends(current_session),
+):
     """
     Generate the COMPLETED audit report from captured Keep/Revoke decisions.
 
@@ -208,7 +254,10 @@ async def generate_report(request: GenerateReportRequest):
 
 
 @router.post("/export")
-async def export_filtered_data(request: ExportRequest):
+async def export_filtered_data(
+    request: ExportRequest,
+    csv_service: CSVService = Depends(current_session),
+):
     """
     Export data for selected staff with a department assignment.
 
@@ -251,10 +300,18 @@ async def export_filtered_data(request: ExportRequest):
         )
 
 
+@router.delete("/session")
+async def end_session(x_session_id: Optional[str] = Header(None)):
+    """Forget the caller's dataset now (used by "Start a new audit")."""
+    sessions.end(x_session_id)
+    return {"success": True}
+
+
 @router.get("/status")
-async def get_status():
-    """Get current data status."""
-    summary = csv_service.get_current_data_summary()
+async def get_status(x_session_id: Optional[str] = Header(None)):
+    """Get the caller's current data status."""
+    service = sessions.get(x_session_id)
+    summary = service.get_current_data_summary() if service else None
 
     if summary is None:
         return {

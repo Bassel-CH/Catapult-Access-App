@@ -9,6 +9,9 @@ from typing import List, Optional, Dict, Any
 class UploadResponse(BaseModel):
     """Response after successful CSV upload"""
     success: bool
+    session_id: str = Field(
+        ..., description="Send back as the X-Session-Id header on every later call"
+    )
     filename: str
     row_count: int
     rows_dropped: int

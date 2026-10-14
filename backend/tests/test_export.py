@@ -24,6 +24,7 @@ def test_export_returns_csv_for_selected_ids_only():
         files={"file": ("synthetic.csv", io.BytesIO(CSV.encode("cp1252")), "text/csv")},
     )
     assert r.status_code == 200, r.text
+    client.headers["X-Session-Id"] = r.json()["session_id"]
 
     r = client.post("/api/export", json={
         "staff_ids": ["1"],

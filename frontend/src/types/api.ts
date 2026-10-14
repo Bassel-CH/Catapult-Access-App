@@ -26,6 +26,8 @@ export interface StaffRow {
 // ── POST /api/upload ────────────────────────────────────────────────────────
 export interface UploadResponse {
   success: boolean
+  /** Private id for this upload's data; sent back as X-Session-Id. */
+  session_id: string
   filename: string
   row_count: number
   rows_dropped: number

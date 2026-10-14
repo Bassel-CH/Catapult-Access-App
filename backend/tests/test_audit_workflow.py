@@ -28,6 +28,8 @@ def _upload():
         files={"file": ("JulyPermissions.csv", io.BytesIO(data), "text/csv")},
     )
     assert r.status_code == 200, r.text
+    # Every later call must carry this upload's session id.
+    client.headers["X-Session-Id"] = r.json()["session_id"]
     return r.json()
 
 

@@ -362,7 +362,11 @@ export function AuditProvider({ children }: { children: ReactNode }) {
     bulk: (permIds, val) => dispatch({ type: 'BULK', permIds, value: val }),
     setDecisionNote: (permId, note) => dispatch({ type: 'DECISION_NOTE', permId, note }),
     finalize,
-    reset: () => dispatch({ type: 'RESET' }),
+    reset: () => {
+      // "Start a new audit": wipe the server's copy too, not just this tab's.
+      void api.endSession()
+      dispatch({ type: 'RESET' })
+    },
     guard,
   }), [state, periodLabel, uploadFile, finalize, goPhase, guard])
 

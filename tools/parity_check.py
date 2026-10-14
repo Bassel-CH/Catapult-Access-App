@@ -133,9 +133,12 @@ def main() -> int:
         except Exception as e:
             print(f"backend not reachable at {BASE} — start uvicorn first ({e})")
             return 2
-        c.post("/api/upload", files={
+        up = c.post("/api/upload", files={
             "file": (csv_path.name, csv_path.read_bytes(), "text/csv"),
-        }).raise_for_status()
+        })
+        up.raise_for_status()
+        # Every later call must carry this upload's session id.
+        c.headers["X-Session-Id"] = up.json()["session_id"]
 
         full = backend_summary(c, recipe["selected"], recipe)
         print("backend  (full selection):", json.dumps(full))
