@@ -60,7 +60,7 @@ several-fold or this ever runs over a WAN.
 | Header row only | 400 `No permission rows found in this file — it has the right columns but no data rows.` |
 | Only junk rows | 400 `No permission rows found in this file — all 2 row(s) were export noise…` |
 | Any call before upload | 400 `No data loaded. Please upload a CSV first.` |
-| UTF-8 CSV with accents | 200 (encoding fallback works) |
+| UTF-8 CSV with accents | 200 — **correction (Oct 2026):** the 200 hid garbled names (`Jené` → `JenÃ©`) because cp1252 was tried first and never fails. Fixed by trying UTF-8 first; see `backend/tests/test_csv_reading.py`. |
 
 No stack traces in any response body (asserted, not eyeballed).
 

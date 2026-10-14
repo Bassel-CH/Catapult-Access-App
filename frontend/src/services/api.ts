@@ -22,11 +22,15 @@ export interface AuditApi {
   report(req: GenerateReportRequest): Promise<ReportResponse>
   /** Printable HTML packet (backend returns text/html). */
   reviewDocument(req: ReviewDocumentRequest): Promise<string>
-  /** CSV file download (backend returns a FileResponse). */
+  /** CSV file download (backend returns the CSV bytes directly). */
   exportCsv(req: ExportRequest): Promise<Blob>
+  /** Tell the backend to forget this upload's data now. Never throws. */
+  endSession(): Promise<void>
 }
 
-const USE_MOCKS = (import.meta.env.VITE_USE_MOCKS ?? 'true') !== 'false'
+// Mocks only when explicitly "true". A missing or mistyped value means the
+// real backend — a build must never quietly ship fake data.
+const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 // Empty string = same-origin, which is what the dev proxy needs. Only set
 // VITE_API_BASE_URL to talk to a backend on another origin (then CORS applies).
 const BASE = import.meta.env.VITE_API_BASE_URL ?? ''
@@ -72,9 +76,25 @@ const mockApi: AuditApi = {
   report: mock.report,
   reviewDocument: mock.reviewDocument,
   exportCsv: mock.exportCsv,
+  endSession: async () => {},
 }
 
 // ── Real implementation ─────────────────────────────────────────────────────
+
+/**
+ * This tab's backend session. Each upload gets a private dataset on the server
+ * and an id for it; every later call sends the id back as X-Session-Id.
+ *
+ * Kept in memory only (not localStorage): a refresh or closed tab drops it,
+ * and the server forgets the data after 60 idle minutes anyway. An expired id
+ * answers "No data loaded", which isSessionLost() already turns into the
+ * re-upload recovery flow.
+ */
+let sessionId: string | null = null
+
+function sessionHeaders(): Record<string, string> {
+  return sessionId ? { 'X-Session-Id': sessionId } : {}
+}
 
 /**
  * Pull the cleanest possible message out of a failed response.
@@ -111,7 +131,7 @@ async function asJson<T>(res: Response): Promise<T> {
 function postJson(path: string, body: unknown): Promise<Response> {
   return fetch(`${BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...sessionHeaders() },
     body: JSON.stringify(body),
   })
 }
@@ -122,7 +142,13 @@ const realApi: AuditApi = {
     // Never read/re-encode it client-side.
     const fd = new FormData()
     fd.append('file', file)
-    return asJson<UploadResponse>(await fetch(`${BASE}/api/upload`, { method: 'POST', body: fd }))
+    // Sending the old id (if any) lets the server drop that dataset once the
+    // new one has loaded successfully.
+    const up = await asJson<UploadResponse>(
+      await fetch(`${BASE}/api/upload`, { method: 'POST', body: fd, headers: sessionHeaders() }),
+    )
+    sessionId = up.session_id
+    return up
   },
   async filter(req) {
     return asJson<FilterResponse>(await postJson('/api/filter', req))
@@ -140,6 +166,15 @@ const realApi: AuditApi = {
   async exportCsv(req) {
     // FileResponse (a CSV attachment); same error handling as above.
     return (await ensureOk(await postJson('/api/export', req))).blob()
+  },
+  async endSession() {
+    const id = sessionId
+    sessionId = null
+    if (!id) return
+    // Best effort: if this fails, the server still drops it after 60 idle min.
+    try {
+      await fetch(`${BASE}/api/session`, { method: 'DELETE', headers: { 'X-Session-Id': id } })
+    } catch { /* ignore */ }
   },
 }
 

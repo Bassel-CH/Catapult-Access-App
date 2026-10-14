@@ -8,9 +8,11 @@ Updated for the WSL/Windows rebuild:
 - Drops junk rows by keeping only valid PermissionSource values
 """
 import pandas as pd
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Set
 import io
 import hashlib
+import logging
+import secrets
 
 from ..config import REQUIRED_COLUMNS
 from ..utils.exceptions import InvalidCSVError, NoDataLoadedError, FilterError
@@ -20,6 +22,8 @@ from ..utils.exceptions import InvalidCSVError, NoDataLoadedError, FilterError
 # Everything else (header dividers like "----", the trailing
 # "(N rows affected)" footer, or blanks) is export noise and gets dropped.
 VALID_PERMISSION_SOURCES = ["Position-Based", "Direct Assignment"]
+
+logger = logging.getLogger("audit.csv")
 
 
 class CSVService:
@@ -102,20 +106,43 @@ class CSVService:
         except pd.errors.EmptyDataError:
             raise InvalidCSVError("CSV file is empty")
         except pd.errors.ParserError as e:
+            # pandas' parser messages are about the file's shape (e.g.
+            # "Expected 7 fields in line 12, saw 8") — safe and useful to show.
             raise InvalidCSVError(f"Error parsing CSV: {str(e)}")
-        except Exception as e:
-            raise InvalidCSVError(f"Error processing CSV: {str(e)}")
+        except Exception:
+            # Anything else is unexpected: keep internals out of the response.
+            ref = secrets.token_hex(3)
+            logger.exception("Unexpected error processing CSV [ref %s]", ref)
+            raise InvalidCSVError(
+                "Could not process this CSV. Check that it's the usual report "
+                f"export. Reference: {ref}"
+            )
 
     def _read_csv_with_encoding(self, file_content: bytes) -> pd.DataFrame:
         """
         Read CSV bytes, trying the encodings our reports actually use.
 
-        The audit exports are cp1252 (Windows-1252). We try that first,
-        then fall back to UTF-8 for any file from a different source.
+        UTF-8 is tried FIRST, then cp1252 (Windows-1252, what the monthly
+        export uses). The order matters: cp1252 accepts almost any byte, so
+        trying it first "succeeds" on UTF-8 files and garbles accents
+        ("Jené" -> "JenÃ©"). UTF-8 is strict, so a real cp1252 file with
+        accents fails it cleanly and falls through to cp1252. Pure-ASCII
+        files read identically either way.
+
+        "utf-8-sig" is UTF-8 that also strips the invisible byte-order mark
+        Excel adds when saving as "CSV UTF-8"; without that, the first column
+        header reads as "\\ufeffStaffId" and the upload is rejected.
+
+        dtype=str keeps every column as text, so an id like "00123" is never
+        turned into the number 123. Text like "NULL" in empty PositionName
+        cells is still read as blank (the default NA handling, which the
+        direct-assignment rows rely on).
         """
-        for encoding in ("cp1252", "utf-8"):
+        for encoding in ("utf-8-sig", "cp1252"):
             try:
-                return pd.read_csv(io.BytesIO(file_content), encoding=encoding)
+                return pd.read_csv(
+                    io.BytesIO(file_content), encoding=encoding, dtype=str
+                )
             except UnicodeDecodeError:
                 continue
         raise InvalidCSVError(
@@ -206,7 +233,11 @@ class CSVService:
             if filters.get("search_text"):
                 search_term = filters["search_text"].lower()
                 mask = df.astype(str).apply(
-                    lambda row: row.str.lower().str.contains(search_term, na=False).any(),
+                    # regex=False: treat the search as plain text, so "(" or
+                    # "." are matched literally instead of as pattern syntax.
+                    lambda row: row.str.lower().str.contains(
+                        search_term, na=False, regex=False
+                    ).any(),
                     axis=1,
                 )
                 df = df[mask]
@@ -442,6 +473,39 @@ class CSVService:
             })
 
         return people
+
+    def flagged_by_person(
+        self, staff_names: List[str], permission_ids: List[str]
+    ) -> Dict[str, Set[str]]:
+        """
+        Translate highlighted permission ids into per-person "domain::permission"
+        keys the review packet can match against.
+
+        The UI keys highlights by AuditPermission.id, but the packet is built
+        from build_review(), which has no ids. Rebuilding the audit tree gives
+        the same ids (they're deterministic), so we can map each id back to the
+        exact person + app + permission it was set on.
+
+        Only Direct Assignment highlights are returned: the packet's tick-box
+        tables list direct grants only, so a position-based highlight has no
+        row to land on.
+        """
+        wanted = set(permission_ids or [])
+        out: Dict[str, Set[str]] = {}
+        if not wanted:
+            return out
+
+        for person in self.build_audit_tree(staff_names):
+            for group in person["groups"]:
+                if group["key"] != "direct":
+                    continue
+                for app in group["apps"]:
+                    for perm in app["permissions"]:
+                        if perm["id"] in wanted:
+                            out.setdefault(person["staff_name"], set()).add(
+                                f"{app['domain']}::{perm['name']}"
+                            )
+        return out
 
     def get_current_data_summary(self) -> Optional[Dict[str, Any]]:
         """Get summary of currently loaded data"""

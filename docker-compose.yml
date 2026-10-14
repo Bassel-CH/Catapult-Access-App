@@ -1,0 +1,37 @@
+# docker-compose.yml  —  BASE
+#
+# The shared shape of the app: which services exist, how they're named, how they
+# reach each other. This file is environment-agnostic — it does NOT decide
+# dev-vs-prod. That's what the override files do.
+#
+# Run this repo from the repo root (where this file lives), NOT from backend/.
+# The build contexts below point down into each subfolder.
+#
+#   docker compose up            -> base + docker-compose.override.yml (dev)   [default]
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up   (prod)
+
+services:
+  backend:
+    build:
+      context: ./backend          # the Dockerfile you already built & tested
+      dockerfile: Dockerfile
+    image: audit-backend          # reuse the tag you built by hand
+    # No ports here in base — dev and prod expose differently, so port mapping
+    # lives in the override files. No command here either: the image's own CMD
+    # (prod uvicorn, no --reload) is the default; dev overrides it.
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: audit-frontend
+    depends_on:
+      - backend                   # start ordering only — see note in the walkthrough
+
+# One user-defined network so the two services can find each other by name.
+# Compose creates a default network automatically, but naming it explicitly
+# documents intent and makes the DNS behaviour obvious: inside this network,
+# "backend" resolves to the backend container's IP.
+networks:
+  default:
+    name: audit-net

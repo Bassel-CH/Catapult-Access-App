@@ -3,12 +3,15 @@ Pydantic models for request/response validation
 These ensure data coming in and going out is properly formatted
 """
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List, Literal, Optional, Dict, Any
 
 
 class UploadResponse(BaseModel):
     """Response after successful CSV upload"""
     success: bool
+    session_id: str = Field(
+        ..., description="Send back as the X-Session-Id header on every later call"
+    )
     filename: str
     row_count: int
     rows_dropped: int
@@ -87,7 +90,10 @@ class ReviewDocumentRequest(BaseModel):
     staff_names: List[str] = Field(..., description="Selected staff names")
     audit_label: str = Field("", description="e.g. 'July - Operations'")
     manager_name: str = Field("", description="Manager the packet is for")
-    flagged: List[str] = Field(default_factory=list, description="Permissions to highlight")
+    flagged: List[str] = Field(
+        default_factory=list,
+        description="AuditPermission ids to highlight (same ids as /audit-tree)",
+    )
 
 
 class ExportRequest(BaseModel):
@@ -182,7 +188,9 @@ class AuditTreeResponse(BaseModel):
 
 class AuditDecision(BaseModel):
     """A manager's decision on one permission, keyed by AuditPermission.id."""
-    decision: Optional[str] = Field(
+    # Literal: anything other than exactly "keep", "revoke" or null is rejected
+    # with a 422, instead of silently being counted as "No decision".
+    decision: Optional[Literal["keep", "revoke"]] = Field(
         None, description="'keep', 'revoke', or null for undecided"
     )
     note: str = ""

@@ -8,6 +8,13 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // Windows→container filesystem writes don't reliably raise inotify events
+    // across the /mnt/c bind mount, so Vite's watcher silently misses edits and
+    // serves stale modules. Polling checks the files on a timer instead.
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
     // ── Phase C: wired to the real backend ────────────────────────────────
     // The browser calls same-origin "/api/..." and Vite forwards to FastAPI,
     // so the backend's CORS list (:3000/:3001, NOT :5173) never comes into
@@ -16,7 +23,10 @@ export default defineConfig({
     // .env.local); a non-empty base URL bypasses this proxy and would need
     // "http://localhost:5173" added to CORS_ORIGINS in backend/app/config.py.
     proxy: {
-      '/api': { target: 'http://localhost:8000', changeOrigin: true },
+      '/api': {
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:8000',
+        changeOrigin: true,
+      },
     },
   },
 })

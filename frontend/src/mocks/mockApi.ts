@@ -45,6 +45,7 @@ export async function upload(file: File): Promise<UploadResponse> {
 
   return {
     success: true,
+    session_id: 'mock-session',
     filename: file?.name ?? 'sample-data.csv',
     row_count: dataset.length,
     rows_dropped: 2, // pretend we dropped a divider row + the "(N rows affected)" footer

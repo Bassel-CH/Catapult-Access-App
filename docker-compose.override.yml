@@ -1,0 +1,68 @@
+# docker-compose.override.yml  —  DEV  (auto-applied by `docker compose up`)
+#
+# This is the file you run every day. Compose merges it on top of the base
+# automatically — you don't pass any -f flags. It turns the two prod images into
+# a live-editing development stack:
+#   - backend: your host code mounted in, uvicorn --reload
+#   - frontend: NOT the nginx image — the Vite dev server, with hot reload
+#
+# Why the frontend looks so different from prod here: the prod frontend image is
+# nginx serving pre-built static files (the Node toolchain is thrown away in
+# stage 2). There is no dev server inside it. So for development we don't use
+# that image at all — we run a plain node container and start Vite ourselves.
+
+services:
+  backend:
+    ports:
+      - "8000:8000"               # host:container — reach it at localhost:8000
+    volumes:
+      # Mount your host source OVER the code baked into the image, so edits on
+      # WSL take effect live. Only app/ is mounted — not the whole backend/ —
+      # so the container's installed dependencies (site-packages) are untouched.
+      - ./backend/app:/srv/backend/app
+    # Run as your host UID so files the container touches stay owned by you on
+    # WSL, and so the mounted code is readable. 1000:1000 = your WSL user.
+    user: "1000:1000"
+    # Override the image's prod CMD to add --reload. Uvicorn watches the mounted
+    # files and restarts on save.
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+  frontend:
+    # Replace the nginx image entirely with a bare node image for dev.
+    image: node:22-alpine
+    build: !reset null
+    working_dir: /app
+    ports:
+      - "5173:5173"               # Vite dev server
+    volumes:
+      - ./frontend:/app           # live source
+      - /app/node_modules         # anonymous volume: keep container's node_modules,
+                                   # don't let the host mount hide them (see walkthrough)
+    # NOTE: no `user:` override here (unlike backend). The anonymous
+    # node_modules volume above is created root-owned by Docker; forcing UID 1000
+    # would make npm-as-1000 unable to write into it (EACCES on mkdir). Letting
+    # the dev container run as its default (root) sidesteps that. This is a
+    # LOCAL DEV node process only — the prod frontend is the separate, hardened
+    # nginx image, so root here costs nothing. The backend keeps user:1000
+    # because its bind-mount is your editable Python source, a different case.
+    # Install deps, then start Vite bound to 0.0.0.0 so it's reachable from your
+    # host browser (not just from inside the container).
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    environment:
+      # Empty base URL => the client calls same-origin /api, and Vite's dev
+      # proxy forwards to the backend. That proxy is configured in
+      # vite.config.ts (see the note below — you may need to add it).
+      - VITE_USE_MOCKS=false
+      - VITE_API_BASE_URL=
+      # Tells vite.config.ts's proxy where the backend lives INSIDE compose.
+      # "backend" is the compose service name, resolved via the audit-net DNS.
+      # When you run bare `npm run dev` on your host instead, this var is unset,
+      # and vite.config.ts falls back to http://localhost:8000. One config,
+      # both workflows.
+      - VITE_PROXY_TARGET=http://backend:8000
+    depends_on:
+      - backend

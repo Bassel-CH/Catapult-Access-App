@@ -4,18 +4,49 @@
  * interest. Highlights are keyed by the audit-tree permission ids, so they
  * carry straight into the manager screen.
  */
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react' 
 import type { AuditPerson } from '../types/api'
-import { useAudit } from '../state/AuditContext'
+import { useAudit, type AuditState } from '../state/AuditContext'
+import PermissionSearch from './PermissionSearch'
 import { api, usingMocks } from '../services/api'
 import { collectPermIds } from '../lib/cascade'
 import { MONTHS } from '../lib/format'
 import { downloadBlob, slug } from '../lib/download'
 import { Button, Panel, PanelHead, Pill } from './ui'
 
+/**
+ * A new upload resets the audit (selection, highlights, decisions). Ask first
+ * whenever that would throw work away — except when re-uploading the same file
+ * to recover a lost session, which is what restores that work.
+ */
+function confirmReplace(state: AuditState, file: File): boolean {
+  const r = state.recovery
+  if (r) {
+    if (file.name === r.filename) return true
+    return window.confirm(
+      `The held audit belongs to "${r.filename}", but you picked "${file.name}".\n\n`
+      + 'Uploading a different file discards the held selection and decisions. Continue?',
+    )
+  }
+  const people = state.selected.length
+  const highlights = Object.keys(state.highlights).length
+  const decisions = Object.values(state.decisions).filter((d) => d.decision || d.note).length
+  if (!people && !highlights && !decisions) return true
+  return window.confirm(
+    'Uploading a file starts a new audit and clears the current one:\n\n'
+    + `  • ${people} selected ${people === 1 ? 'person' : 'people'}\n`
+    + `  • ${highlights} highlight(s)\n`
+    + `  • ${decisions} decision(s)\n\n`
+    + 'Continue?',
+  )
+}
+
 function UploadPanel() {
   const { state, uploadFile } = useAudit()
   const up = state.upload
+  const pick = (file: File) => {
+    if (confirmReplace(state, file)) void uploadFile(file)
+  }
   return (
     <Panel>
       <PanelHead title="1 · Load the report" sub="Upload the monthly organization export, or load sample data to explore." />
@@ -27,7 +58,10 @@ function UploadPanel() {
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0]
-              if (f) void uploadFile(f)
+              // Clear the picker so choosing the same file again still fires
+              // onChange (browsers only fire it when the value changes).
+              e.target.value = ''
+              if (f) pick(f)
             }}
           />
           Upload CSV
@@ -35,7 +69,7 @@ function UploadPanel() {
         {/* Mock-only: this posts a zero-byte File, which the real backend
             correctly rejects as an empty CSV. Hidden when live. */}
         {usingMocks && (
-          <Button variant="ghost" onClick={() => void uploadFile(new File([], 'sample-data.csv'))}>
+          <Button variant="ghost" onClick={() => pick(new File([], 'sample-data.csv'))}>
             Load sample data
           </Button>
         )}
@@ -122,7 +156,7 @@ function DefineAuditPanel() {
   )
 }
 
-function HighlightTree({ person }: { person: AuditPerson }) {
+const HighlightTree = memo(function HighlightTree({ person }: { person: AuditPerson }) {
   const { state, toggleHighlight, setHighlightNote } = useAudit()
   if (!person.found) return <p className="text-muted text-[13px] px-2 py-1">Not found in the loaded data.</p>
 
@@ -174,13 +208,14 @@ function HighlightTree({ person }: { person: AuditPerson }) {
       ))}
     </div>
   )
-}
+})
 
-function UserCard({ name }: { name: string }) {
+const UserCard = memo(function UserCard({ name }: { name: string }) {
   const { state, toggleSelect } = useAudit()
   const user = state.users.find((u) => u.name === name)!
   const person = state.treeCache[name]
   const selected = state.selected.includes(name)
+  const [open, setOpen] = useState(false)
   const hlCount = useMemo(() => {
     if (!person) return 0
     const ids = new Set(collectPermIds(person))
@@ -188,7 +223,10 @@ function UserCard({ name }: { name: string }) {
   }, [person, state.highlights])
 
   return (
-    <details className={`border rounded-xl mb-2.5 bg-white overflow-hidden ${selected ? 'border-[#bcd0ff] bg-[#fbfcff]' : 'border-line'}`}>
+    <details 
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+      className={`border rounded-xl mb-2.5 bg-white overflow-hidden ${selected ? 'border-[#bcd0ff] bg-[#fbfcff]' : 'border-line'}`}
+    >  
       <summary className="px-3.5 py-3 hover:bg-[#fafbfe]">
         <input
           type="checkbox"
@@ -204,11 +242,13 @@ function UserCard({ name }: { name: string }) {
         {hlCount > 0 && <Pill tone="flag">{hlCount} highlighted</Pill>}
       </summary>
       <div className="px-3 pb-3 pt-0.5">
-        {person ? <HighlightTree person={person} /> : <p className="text-muted text-[13px]">No tree available.</p>}
+        {open && (person
+          ? <HighlightTree person={person} />
+          : <p className="text-muted text-[13px]">No tree available.</p>)}
       </div>
     </details>
   )
-}
+}) 
 
 function SelectUsersPanel() {
   const { state, selectMany, clearSelect } = useAudit()
@@ -235,13 +275,11 @@ function SelectUsersPanel() {
   }, [state.users, state.selected, search, posFilter])
 
   return (
-    <Panel>
-      <PanelHead
-        title="3 · Select users & highlight points of interest"
-        sub="Selected people stay pinned to the top. Expand a user to flag permissions that need a closer look."
-        right={<Pill tone="brand">{state.selected.length} selected</Pill>}
-      />
-      <div className="flex gap-2.5 items-center flex-wrap my-3.5">
+    <>
+      <p className="text-muted text-[13px] mt-0 mb-3.5">
+        Selected people stay pinned to the top. Expand a user to flag permissions that need a closer look.
+      </p>    
+      <div className="flex gap-2.5 items-center flex-wrap mb-3.5">
         <input className="field-input max-w-70" placeholder="Search name, email, position…"
           value={search} onChange={(e) => setSearch(e.target.value)} />
         <select className="field-input max-w-52" value={posFilter} onChange={(e) => setPosFilter(e.target.value)}>
@@ -256,13 +294,19 @@ function SelectUsersPanel() {
         : visible.length === 0
           ? <div className="bg-[#fbfbfd] border border-dashed border-line rounded-lg px-3.5 py-3 text-[13px] text-muted">No users match.</div>
           : visible.map((u) => <UserCard key={u.name} name={u.name} />)}
-    </Panel>
+    </>
   )
 }
 
 export default function Phase1() {
   const { state, periodLabel, startAudit, guard } = useAudit()
   const canLock = state.selected.length > 0 && state.dept.trim().length > 0
+  const [tab, setTab] = useState<'users' | 'search'>('users')
+
+  const tabClass = (on: boolean) =>
+    `text-[13px] font-semibold rounded-full px-3.5 py-1.5 border ${
+      on ? 'bg-brand-soft border-[#bcd0ff] text-brand-ink' : 'bg-white border-line text-muted hover:border-[#c4cad6]'
+    }`
 
   // Note: /api/export is the one endpoint keyed by StaffId, not StaffName —
   // hence the staffIds hop. Wrapped in guard() so a failure (or a lost backend
@@ -281,7 +325,19 @@ export default function Phase1() {
     <section>
       <UploadPanel />
       <DefineAuditPanel />
-      <SelectUsersPanel />
+      <Panel>
+        <div className="flex items-center gap-2.5 flex-wrap mb-3">
+          <span className="font-semibold">3 ·</span>
+          <button className={tabClass(tab === 'users')} onClick={() => setTab('users')}>
+            Select users &amp; highlight points of interest
+          </button>
+          <button className={tabClass(tab === 'search')} onClick={() => setTab('search')}>
+            Permission search
+          </button>
+          <span className="ml-auto"><Pill tone="brand">{state.selected.length} selected</Pill></span>
+        </div>
+        {tab === 'users' ? <SelectUsersPanel /> : <PermissionSearch />}
+      </Panel>
       <div className="sticky bottom-0 pt-3.5 mt-2">
         <Panel className="mb-0">
           <div className="flex justify-between items-center gap-3.5 flex-wrap">
