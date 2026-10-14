@@ -28,7 +28,9 @@ export interface AuditApi {
   endSession(): Promise<void>
 }
 
-const USE_MOCKS = (import.meta.env.VITE_USE_MOCKS ?? 'true') !== 'false'
+// Mocks only when explicitly "true". A missing or mistyped value means the
+// real backend — a build must never quietly ship fake data.
+const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 // Empty string = same-origin, which is what the dev proxy needs. Only set
 // VITE_API_BASE_URL to talk to a backend on another origin (then CORS applies).
 const BASE = import.meta.env.VITE_API_BASE_URL ?? ''
