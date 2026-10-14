@@ -233,7 +233,11 @@ class CSVService:
             if filters.get("search_text"):
                 search_term = filters["search_text"].lower()
                 mask = df.astype(str).apply(
-                    lambda row: row.str.lower().str.contains(search_term, na=False).any(),
+                    # regex=False: treat the search as plain text, so "(" or
+                    # "." are matched literally instead of as pattern syntax.
+                    lambda row: row.str.lower().str.contains(
+                        search_term, na=False, regex=False
+                    ).any(),
                     axis=1,
                 )
                 df = df[mask]
