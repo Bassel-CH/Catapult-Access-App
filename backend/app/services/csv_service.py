@@ -110,12 +110,27 @@ class CSVService:
         """
         Read CSV bytes, trying the encodings our reports actually use.
 
-        The audit exports are cp1252 (Windows-1252). We try that first,
-        then fall back to UTF-8 for any file from a different source.
+        UTF-8 is tried FIRST, then cp1252 (Windows-1252, what the monthly
+        export uses). The order matters: cp1252 accepts almost any byte, so
+        trying it first "succeeds" on UTF-8 files and garbles accents
+        ("Jené" -> "JenÃ©"). UTF-8 is strict, so a real cp1252 file with
+        accents fails it cleanly and falls through to cp1252. Pure-ASCII
+        files read identically either way.
+
+        "utf-8-sig" is UTF-8 that also strips the invisible byte-order mark
+        Excel adds when saving as "CSV UTF-8"; without that, the first column
+        header reads as "\\ufeffStaffId" and the upload is rejected.
+
+        dtype=str keeps every column as text, so an id like "00123" is never
+        turned into the number 123. Text like "NULL" in empty PositionName
+        cells is still read as blank (the default NA handling, which the
+        direct-assignment rows rely on).
         """
-        for encoding in ("cp1252", "utf-8"):
+        for encoding in ("utf-8-sig", "cp1252"):
             try:
-                return pd.read_csv(io.BytesIO(file_content), encoding=encoding)
+                return pd.read_csv(
+                    io.BytesIO(file_content), encoding=encoding, dtype=str
+                )
             except UnicodeDecodeError:
                 continue
         raise InvalidCSVError(
