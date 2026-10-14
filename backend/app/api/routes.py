@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, Response
 
+from ..config import MAX_UPLOAD_SIZE
 from ..models.schemas import (
     UploadResponse,
     FilterRequest,
@@ -87,13 +88,27 @@ async def upload_csv(
     dropped automatically; rows_dropped reports how many were removed.
     """
     try:
-        if not file.filename.endswith('.csv'):
+        # Case-insensitive, so "July.CSV" is accepted; `or ""` covers an
+        # upload that arrives with no filename at all.
+        if not (file.filename or "").lower().endswith('.csv'):
             raise HTTPException(
                 status_code=400,
                 detail="File must be a CSV (.csv extension)"
             )
 
-        content = await file.read()
+        # Read at most one byte past the limit: enough to know it's too big
+        # without pulling a huge file into memory.
+        content = await file.read(MAX_UPLOAD_SIZE + 1)
+        if len(content) > MAX_UPLOAD_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    f"File is too large (limit {MAX_UPLOAD_SIZE // (1024 * 1024)} MB). "
+                    "The monthly export is normally well under 1 MB — check "
+                    "this is the right file."
+                ),
+            )
+
         csv_service = CSVService()
         result = await csv_service.process_upload(content, file.filename)
 

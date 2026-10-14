@@ -36,5 +36,5 @@ CORS_ORIGINS = [
 ]
 
 # File upload limits
-MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50MB
-ALLOWED_EXTENSIONS = {'.csv'}
+# The real monthly export is ~0.65 MB; 10 MB leaves ~15x room to grow.
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
