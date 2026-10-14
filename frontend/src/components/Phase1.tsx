@@ -6,7 +6,7 @@
  */
 import { memo, useMemo, useState } from 'react' 
 import type { AuditPerson } from '../types/api'
-import { useAudit } from '../state/AuditContext'
+import { useAudit, type AuditState } from '../state/AuditContext'
 import PermissionSearch from './PermissionSearch'
 import { api, usingMocks } from '../services/api'
 import { collectPermIds } from '../lib/cascade'
@@ -14,9 +14,39 @@ import { MONTHS } from '../lib/format'
 import { downloadBlob, slug } from '../lib/download'
 import { Button, Panel, PanelHead, Pill } from './ui'
 
+/**
+ * A new upload resets the audit (selection, highlights, decisions). Ask first
+ * whenever that would throw work away — except when re-uploading the same file
+ * to recover a lost session, which is what restores that work.
+ */
+function confirmReplace(state: AuditState, file: File): boolean {
+  const r = state.recovery
+  if (r) {
+    if (file.name === r.filename) return true
+    return window.confirm(
+      `The held audit belongs to "${r.filename}", but you picked "${file.name}".\n\n`
+      + 'Uploading a different file discards the held selection and decisions. Continue?',
+    )
+  }
+  const people = state.selected.length
+  const highlights = Object.keys(state.highlights).length
+  const decisions = Object.values(state.decisions).filter((d) => d.decision || d.note).length
+  if (!people && !highlights && !decisions) return true
+  return window.confirm(
+    'Uploading a file starts a new audit and clears the current one:\n\n'
+    + `  • ${people} selected ${people === 1 ? 'person' : 'people'}\n`
+    + `  • ${highlights} highlight(s)\n`
+    + `  • ${decisions} decision(s)\n\n`
+    + 'Continue?',
+  )
+}
+
 function UploadPanel() {
   const { state, uploadFile } = useAudit()
   const up = state.upload
+  const pick = (file: File) => {
+    if (confirmReplace(state, file)) void uploadFile(file)
+  }
   return (
     <Panel>
       <PanelHead title="1 · Load the report" sub="Upload the monthly organization export, or load sample data to explore." />
@@ -28,7 +58,10 @@ function UploadPanel() {
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0]
-              if (f) void uploadFile(f)
+              // Clear the picker so choosing the same file again still fires
+              // onChange (browsers only fire it when the value changes).
+              e.target.value = ''
+              if (f) pick(f)
             }}
           />
           Upload CSV
@@ -36,7 +69,7 @@ function UploadPanel() {
         {/* Mock-only: this posts a zero-byte File, which the real backend
             correctly rejects as an empty CSV. Hidden when live. */}
         {usingMocks && (
-          <Button variant="ghost" onClick={() => void uploadFile(new File([], 'sample-data.csv'))}>
+          <Button variant="ghost" onClick={() => pick(new File([], 'sample-data.csv'))}>
             Load sample data
           </Button>
         )}
