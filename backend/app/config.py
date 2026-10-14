@@ -1,18 +1,9 @@
 """
 Configuration settings for the Audit Filter API
 """
-from pathlib import Path
 
-# Base directory - the root of the backend folder
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-# Directory for temporary file uploads
-UPLOAD_DIR = BASE_DIR / "temp_uploads"
-UPLOAD_DIR.mkdir(exist_ok=True)
-
-# Directory for exported CSV files
-EXPORT_DIR = BASE_DIR.parent / "exports"
-EXPORT_DIR.mkdir(exist_ok=True)
+# No upload or export directories: uploads are parsed in memory and exports
+# are built in memory and sent straight back. Nothing touches the disk.
 
 # Expected CSV columns (7 columns - no PermissionDescription)
 REQUIRED_COLUMNS = [

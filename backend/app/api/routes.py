@@ -2,7 +2,7 @@
 API routes/endpoints for the audit filter application
 """
 from fastapi import APIRouter, UploadFile, File, HTTPException 
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 
 from ..models.schemas import (
     UploadResponse,
@@ -224,18 +224,17 @@ async def export_filtered_data(request: ExportRequest):
                 detail="No data found for the provided staff IDs"
             )
 
-        filepath = ExportService.create_export(
+        csv_bytes, filename = ExportService.create_export(
             df=df,
             department=request.department,
             audit_date=request.audit_date,
         )
 
-        return FileResponse(
-            path=filepath,
+        return Response(
+            content=csv_bytes,
             media_type="text/csv",
-            filename=filepath.name,
             headers={
-                "Content-Disposition": f"attachment; filename={filepath.name}"
+                "Content-Disposition": f'attachment; filename="{filename}"'
             }
         )
 
