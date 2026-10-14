@@ -3,7 +3,7 @@ Pydantic models for request/response validation
 These ensure data coming in and going out is properly formatted
 """
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List, Literal, Optional, Dict, Any
 
 
 class UploadResponse(BaseModel):
@@ -188,7 +188,9 @@ class AuditTreeResponse(BaseModel):
 
 class AuditDecision(BaseModel):
     """A manager's decision on one permission, keyed by AuditPermission.id."""
-    decision: Optional[str] = Field(
+    # Literal: anything other than exactly "keep", "revoke" or null is rejected
+    # with a 422, instead of silently being counted as "No decision".
+    decision: Optional[Literal["keep", "revoke"]] = Field(
         None, description="'keep', 'revoke', or null for undecided"
     )
     note: str = ""
