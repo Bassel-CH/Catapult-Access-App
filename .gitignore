@@ -7,6 +7,11 @@ __pycache__/
 # Real data — never commit permissions exports
 *.csv
 
+# Host-specific settings (hostnames, cert paths). Only the example is shared.
+.env
+.env.*
+!.env.example
+
 # Parity-check scratch files (regenerated on every run; derived from real data)
 tools/.parity-*.json
 
