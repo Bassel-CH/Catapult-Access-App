@@ -39,6 +39,26 @@ Parity check (backend must be running): `python tools/parity_check.py`
 See `frontend/README.md` for how the app is wired (the `services/api.ts` seam,
 the dev proxy, mock mode) and `PHASE-C-VALIDATION.md` for what's been verified.
 
+## Run exactly one backend instance
+
+Uploaded data lives only in the backend's memory: one private session per
+upload, deleted after 60 idle minutes. This is deliberate. Nothing is written
+to disk or to a database.
+
+What follows from that:
+
+- Restarting or redeploying the backend ends every open session. Users see
+  "Session expired" and re-upload the same file; if their browser tab is still
+  open, their selections and decisions come back.
+- Don't run more than one backend instance (for example behind a load
+  balancer). A user's requests could reach an instance that doesn't hold their
+  session.
+
+To lift this, sessions would have to move to a shared store every instance can
+reach (Redis, for example), keeping the same 60-minute expiry. The code change
+is confined to `backend/app/services/session_service.py`. Staff data would then
+sit in that store too, which needs its own HITRUST review.
+
 ## Backend package versions
 
 `backend/requirements.txt` lists the exact version of every package the backend
