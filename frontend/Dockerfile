@@ -29,11 +29,9 @@ COPY . .
 # .env.local is gitignored, so it will not exist in a clean clone or on a build
 # server. Declaring the values explicitly makes the build reproducible instead
 # of dependent on an untracked file. Defaults match .env.example: talk to the
-# real backend, same-origin.
+# real backend.
 ARG VITE_USE_MOCKS=false
-ARG VITE_API_BASE_URL=
-ENV VITE_USE_MOCKS=$VITE_USE_MOCKS \
-    VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_USE_MOCKS=$VITE_USE_MOCKS
 
 # package.json runs `tsc -b && vite build` — a type error fails the image build.
 RUN npm run build

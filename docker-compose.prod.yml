@@ -34,11 +34,7 @@ services:
     ports:
       - "8080:80"                 # nginx serves the built SPA on container port 80
     restart: unless-stopped
-    # Build-time API URL: empty = same-origin /api, which the (future) edge proxy
-    # will route. If you point at an absolute backend URL instead, that origin
-    # must list this app in backend CORS_ORIGINS.
     build:
       context: ./frontend
       args:
         VITE_USE_MOCKS: "false"
-        VITE_API_BASE_URL: ""
