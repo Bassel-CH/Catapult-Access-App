@@ -12,14 +12,14 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Runtime state — must come from a volume at run time, never baked into the image.
-exports/
-temp_uploads/
+# Leftover runtime folders from older versions — never baked into the image.
+**/exports/
+**/temp_uploads/
 
 # Real permissions data must never enter an image layer. Layers are readable by
 # anyone who can pull the image, and deleting a file in a later layer does not
 # remove it from the earlier one.
-*.csv
+**/*.csv
 
 # Tests are not needed to run the service.
 tests/

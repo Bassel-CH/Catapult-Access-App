@@ -13,8 +13,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# /srv/backend mirrors the repo's backend/ directory. That is deliberate —
-# see the note on EXPORT_DIR below.
+# /srv/backend mirrors the repo's backend/ directory.
 WORKDIR /srv/backend
 
 # Dependencies get their own layer, copied BEFORE the app code.
@@ -26,23 +25,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 
-# --- Paths, and why the WORKDIR above is not arbitrary --------------------
-# config.py does:
-#     BASE_DIR   = Path(__file__).resolve().parent.parent
-#     UPLOAD_DIR = BASE_DIR / "temp_uploads"
-#     EXPORT_DIR = BASE_DIR.parent / "exports"     <-- note: .parent
-#
-# With app/ at /srv/backend/app, BASE_DIR resolves to /srv/backend, so:
-#     UPLOAD_DIR = /srv/backend/temp_uploads
-#     EXPORT_DIR = /srv/exports
-# Same shape as the repo. Move WORKDIR to /srv and exports would land at /exports
-# instead — filesystem root — and your volume mount would silently miss it.
-#
-# Both mkdir() calls run at IMPORT time, so these paths must exist and be
-# writable by the runtime user before uvicorn ever starts.
-RUN useradd --system --create-home --uid 10001 --shell /usr/sbin/nologin appuser \
- && mkdir -p /srv/exports /srv/backend/temp_uploads \
- && chown -R appuser:appuser /srv
+# --- Runtime user and file access ---
+# The code is copied to /srv/backend. The app writes no files (uploads and
+# exports stay in memory), and the app user doesn't own the code, so the
+# running app can't modify it.
+RUN useradd --system --create-home --uid 10001 --shell /usr/sbin/nologin appuser
 
 USER appuser
 
