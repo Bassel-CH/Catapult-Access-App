@@ -31,11 +31,28 @@ cd frontend && npm install
 npm run dev                                    # http://localhost:5173
 ```
 
-Backend test suite: `cd backend && python -m tests.test_audit_workflow`
+Backend tests: each file in `backend/tests/` runs on its own, e.g.
+`cd backend && python -m tests.test_sessions`. All use small made-up data
+except `test_audit_workflow`, which needs the real `JulyPermissions.csv`.
 Parity check (backend must be running): `python tools/parity_check.py`
 
 See `frontend/README.md` for how the app is wired (the `services/api.ts` seam,
 the dev proxy, mock mode) and `PHASE-C-VALIDATION.md` for what's been verified.
+
+## Backend package versions
+
+`backend/requirements.txt` lists the exact version of every package the backend
+uses, including the ones other packages pull in, so every build installs the
+same thing. Don't hand-edit it to loosen versions.
+
+To upgrade on purpose:
+
+1. Change the version you want in `backend/requirements.txt`.
+2. `docker compose build backend`, then run the backend tests.
+3. Save the full resulting set back to the file:
+   `docker run --rm audit-backend pip freeze > backend/requirements.txt`
+4. Confirm the image matches the file (prints nothing but the message):
+   `docker run --rm audit-backend pip freeze | diff - backend/requirements.txt && echo "IMAGE MATCHES PINS"`
 
 ## Real exports are never committed
 
