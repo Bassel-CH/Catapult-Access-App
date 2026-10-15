@@ -6,14 +6,12 @@ import logging
 import secrets
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .config import (
     API_TITLE,
     API_VERSION,
     API_DESCRIPTION,
-    CORS_ORIGINS,
 )
 from .api.routes import router
 
@@ -27,15 +25,6 @@ app = FastAPI(
     description=API_DESCRIPTION,
     docs_url="/docs",
     redoc_url="/redoc",
-)
-
-# Add CORS middleware (allows frontend to connect)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
 )
 
 # Include API routes

@@ -4,8 +4,12 @@
  * Every component and the store call `api.*` — never fetch or the mock
  * directly. Phase C runs on the real backend (VITE_USE_MOCKS=false in
  * .env.local); flipping that flag back to "true" swaps in the mock with no
- * other change. BASE is empty in dev so requests are same-origin "/api/..."
- * and the Vite dev proxy forwards them to FastAPI — see vite.config.ts.
+ * other change.
+ *
+ * Every call is a relative "/api/..." path, so the browser always talks to
+ * the address the page came from: the Vite dev proxy in dev, nginx in prod.
+ * Never add a backend hostname here — it would be baked into the build and
+ * tie the image to one host.
  */
 import type {
   UploadResponse, FilterRequest, FilterResponse,
@@ -31,9 +35,6 @@ export interface AuditApi {
 // Mocks only when explicitly "true". A missing or mistyped value means the
 // real backend — a build must never quietly ship fake data.
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
-// Empty string = same-origin, which is what the dev proxy needs. Only set
-// VITE_API_BASE_URL to talk to a backend on another origin (then CORS applies).
-const BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
 /**
  * A failed API call, carrying the backend's own `detail` string so the UI can
@@ -129,7 +130,7 @@ async function asJson<T>(res: Response): Promise<T> {
 }
 
 function postJson(path: string, body: unknown): Promise<Response> {
-  return fetch(`${BASE}${path}`, {
+  return fetch(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...sessionHeaders() },
     body: JSON.stringify(body),
@@ -145,7 +146,7 @@ const realApi: AuditApi = {
     // Sending the old id (if any) lets the server drop that dataset once the
     // new one has loaded successfully.
     const up = await asJson<UploadResponse>(
-      await fetch(`${BASE}/api/upload`, { method: 'POST', body: fd, headers: sessionHeaders() }),
+      await fetch('/api/upload', { method: 'POST', body: fd, headers: sessionHeaders() }),
     )
     sessionId = up.session_id
     return up
@@ -173,7 +174,7 @@ const realApi: AuditApi = {
     if (!id) return
     // Best effort: if this fails, the server still drops it after 60 idle min.
     try {
-      await fetch(`${BASE}/api/session`, { method: 'DELETE', headers: { 'X-Session-Id': id } })
+      await fetch('/api/session', { method: 'DELETE', headers: { 'X-Session-Id': id } })
     } catch { /* ignore */ }
   },
 }

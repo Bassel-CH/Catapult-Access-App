@@ -28,13 +28,6 @@ Professional audit report filtering and export system.
 * Export filtered data with department assignments
 """
 
-# CORS Settings - allows frontend to connect from different port
-CORS_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3000",
-]
-
 # File upload limits
 # The real monthly export is ~0.65 MB; 10 MB leaves ~15x room to grow.
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB

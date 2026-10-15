@@ -26,10 +26,8 @@ To go back to mock data (no backend needed), set `VITE_USE_MOCKS=true` in
 
 The whole app talks to one seam: **`src/services/api.ts`**, which resolves to
 either the real fetch client or the in-browser mock (`src/mocks/`) based on
-`VITE_USE_MOCKS`. In live mode `BASE` is empty, so calls go to same-origin
-`/api/...` and the Vite dev proxy forwards them to `:8000` — no CORS involved.
-Both implementations hold a single in-memory dataset that `upload` loads and
-every later call reads from.
+`VITE_USE_MOCKS`. Live calls are relative `/api/...` paths: the Vite dev proxy
+forwards them to the backend in dev, nginx does in prod.
 
 ```
 src/
@@ -50,13 +48,10 @@ src/
 
 ## Networking (Phase C)
 
-1. **CORS is bypassed, not configured.** `backend/app/config.py` allows
-   `:3000/:3001`, **not** Vite's `:5173`. Rather than add to that list, the dev
-   proxy in `vite.config.ts` forwards `/api` → `:8000`, so the browser only ever
-   makes same-origin requests and no preflight happens. This requires
-   `VITE_API_BASE_URL` to stay **empty** in `.env.local`; setting it to an
-   absolute URL bypasses the proxy and *does* need `http://localhost:5173` added
-   to `CORS_ORIGINS`.
+1. **One address, no CORS.** The browser only ever talks to the address the
+   page came from, and the proxy in front (Vite in dev, nginx in prod) forwards
+   `/api` to the backend. The backend has no CORS settings, so a page served
+   from any other address can't call it.
 
 2. **`staff_ids` vs `staff_names`.** `/api/export` identifies people by
    **StaffId**; every other endpoint uses **StaffName**. The UI already tracks
