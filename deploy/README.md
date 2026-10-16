@@ -26,7 +26,8 @@ deploy the image any other way (plain `docker run`, ECS, another orchestrator).
 | **Allow ~15 s to stop.** | Each process gets up to 5 s to finish in-flight requests. |
 | **Don't override the entrypoint.** | The entrypoint is the tmpfs check. Overriding the command is fine; overriding the entrypoint skips the check. |
 
-No environment variables or secrets are needed. The image runs as a non-root
+No environment variables or secrets are needed. Leave `ENABLE_API_DOCS` unset:
+it turns on the backend's interactive API docs, which are for development. The image runs as a non-root
 user (uid 10001) and logs everything to stdout/stderr.
 
 Every restart ends all open sessions; users re-upload the same file and their
@@ -70,15 +71,28 @@ new task side by side, which splits sessions. The trade-off is a short outage
 during each deploy. A load balancer target group should point at port 8080 with
 health check path `/api/health`.
 
-Check these against the current AWS docs before relying on them. They were
-written from memory, not tested on ECS:
+Checked against the AWS docs (October 2026), not yet tested on a real ECS
+cluster:
 
-- **Fargate does not support `linuxParameters.tmpfs`** (as far as we know). On
-  Fargate the container will refuse to start. Use the EC2 launch type, or find
-  another in-memory `/tmp` option before switching.
-- **ECS ignores the image's own `HEALTHCHECK`**, which is why the task
-  definition repeats it.
+- **ECS on EC2 instances only — not Fargate.** AWS: on Fargate "the `devices`,
+  `sharedMemorySize`, and `tmpfs` parameters are not supported", and
+  `dockerVolumeConfiguration` isn't either, so there is no in-memory `/tmp` on
+  Fargate. The container will refuse to start there.
+- **ECS ignores the image's own `HEALTHCHECK`** ("Amazon ECS doesn't monitor
+  Docker health checks that are embedded in a container image"), which is why
+  the task definition repeats it.
 - `size` is in MiB.
+
+### The EC2-only constraint is not permanent
+
+The tmpfs requirement exists only because of how the backend receives uploads
+today (`UploadFile`, which Starlette spools to a temp file above 1 MB). Tested
+on the current Starlette (1.8.0): reading the upload with `request.body()` or
+`request.stream()` creates no temp file, and neither does raising Starlette's
+`MultiPartParser.spool_max_size` above the 10 MB upload limit. nginx already
+keeps bodies and responses in memory. With either change, no audit data would
+touch `/tmp`, the tmpfs check could be relaxed, and Fargate would be an option.
+See the PR that introduced this image for the trade-offs.
 
 ## Debugging a running container
 
