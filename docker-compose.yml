@@ -8,7 +8,7 @@
 # The build contexts below point down into each subfolder.
 #
 #   docker compose up            -> base + docker-compose.override.yml (dev)   [default]
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up   (prod)
+#   docker compose -f docker-compose.prod.yml up   (prod — standalone, one combined container)
 
 services:
   backend:

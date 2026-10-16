@@ -1,40 +1,34 @@
-# docker-compose.prod.yml  —  PROD  (opt-in, NOT auto-applied)
+# docker-compose.prod.yml  —  PROD  (standalone, NOT layered on the base file)
 #
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up
+#   docker compose -f docker-compose.prod.yml up -d --build
 #
-# Because you name files explicitly with -f, the dev override is NOT loaded —
-# you get base + this file only. This runs the real images: uvicorn without
-# --reload, and the frontend nginx image serving built static files.
+# Use this file ON ITS OWN. Don't add `-f docker-compose.yml`: the base defines
+# the separate dev backend/frontend services, and they'd start alongside this.
 #
-# ─────────────────────────────────────────────────────────────────────────────
-# SEAM — NOT YET BUILT: the /api edge proxy.
-#
-# The frontend's nginx.conf DELIBERATELY does not proxy /api (its own comment
-# says so). In dev, Vite's proxy handles that. In prod, nothing does yet — so
-# as written, the frontend served here cannot reach the backend. That routing
-# belongs to an edge proxy (nginx / Traefik / Caddy) that is the NEXT phase of
-# your infra work. This file is intentionally left incomplete at that seam
-# rather than inventing a proxy you haven't designed.
-#
-# When you build it, it becomes a third service here that:
-#   - listens on 80/443
-#   - serves the frontend static files (or proxies to the frontend container)
-#   - routes /api/* to backend:8000
-# ─────────────────────────────────────────────────────────────────────────────
+# One container (built from the root Dockerfile) runs nginx and uvicorn under
+# supervisord. nginx serves the SPA and forwards /api/ to uvicorn inside the
+# container; uvicorn is not published, so 8080 is the only way in — including
+# health checks: http://<host>:8080/api/health
+
+# Its own project name. Without it, Compose would use the folder name — the same
+# project as the dev stack — and `--remove-orphans` here would delete your dev
+# containers.
+name: audit-prod
 
 services:
-  backend:
-    ports:
-      - "8000:8000"
-    restart: unless-stopped
-    # No volumes, no user override, no --reload: the baked-in prod image runs
-    # exactly as you built and tested it, as non-root appuser.
-
-  frontend:
-    ports:
-      - "8080:80"                 # nginx serves the built SPA on container port 80
-    restart: unless-stopped
+  app:
     build:
-      context: ./frontend
-      args:
-        VITE_USE_MOCKS: "false"
+      context: .
+      dockerfile: Dockerfile
+    image: audit-app
+    ports:
+      - "8080:8080"
+    # If nginx or uvicorn dies, the container exits (see deploy/supervisord.conf)
+    # and this brings it back. Every restart loses in-memory sessions.
+    restart: unless-stopped
+    # /tmp in memory, never on disk. nginx temp files and Starlette's spooled
+    # uploads (files over 1 MB) land here, and they hold real permissions data.
+    tmpfs:
+      - /tmp
+    # supervisord gives each program up to 5s to stop; leave room for both.
+    stop_grace_period: 15s
