@@ -26,7 +26,7 @@ while True:
     sys.stdout.flush()
 
     sys.stderr.write(
-        f"exit-on-failure: {event.get('processname')} -> "
+        f"stop-container-on-crash: {event.get('processname')} -> "
         f"{header['eventname']}; stopping container\n"
     )
     sys.stderr.flush()

@@ -9,7 +9,7 @@
 # Three stages:
 #   frontend-build  Node compiles the SPA; only dist/ leaves this stage.
 #   backend-deps    pip installs into a venv; only the venv leaves this stage.
-#   (final)         slim Python + Debian's nginx + supervisord running both.
+#   runtime         slim Python + Debian's nginx + supervisord running both.
 
 # trixie pinned explicitly: the bare python:3.12-slim tag has moved between
 # Debian releases before, and the glibc version moves with it.
@@ -44,7 +44,7 @@ COPY backend/requirements.txt /tmp/requirements.txt
 RUN /opt/venv/bin/pip install -r /tmp/requirements.txt supervisor==4.3.0
 
 # ---------- stage 3: runtime ----------
-FROM ${PYTHON_IMAGE}
+FROM ${PYTHON_IMAGE} AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -62,7 +62,7 @@ COPY --from=frontend-build /app/dist /srv/frontend
 
 COPY deploy/nginx.conf /etc/nginx/nginx.conf
 COPY deploy/supervisord.conf /etc/supervisord.conf
-COPY deploy/exit-on-failure.py /srv/deploy/exit-on-failure.py
+COPY deploy/require_tmpfs.py deploy/stop_container_on_crash.py /srv/deploy/
 
 # Everything runs as appuser — supervisord, nginx and uvicorn. It owns none of
 # the code or config, so the running app can't modify them. The only writable
@@ -78,6 +78,9 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/api/health').status==200 else 1)"
 
-# supervisord is PID 1. See deploy/supervisord.conf for what happens when a
-# child process dies.
+# The entrypoint refuses to start without an in-memory /tmp, then execs the
+# CMD, so supervisord still ends up as PID 1. See deploy/README.md for the
+# required mount and deploy/supervisord.conf for what happens when a child
+# process dies.
+ENTRYPOINT ["python", "/srv/deploy/require_tmpfs.py"]
 CMD ["supervisord", "-c", "/etc/supervisord.conf"]

@@ -26,9 +26,11 @@ services:
     # If nginx or uvicorn dies, the container exits (see deploy/supervisord.conf)
     # and this brings it back. Every restart loses in-memory sessions.
     restart: unless-stopped
-    # /tmp in memory, never on disk. nginx temp files and Starlette's spooled
-    # uploads (files over 1 MB) land here, and they hold real permissions data.
+    # Required — the container refuses to start without it. /tmp in memory,
+    # never on disk: uploads over 1 MB are spooled here and hold real
+    # permissions data. 64 MB covers several 10 MB uploads at once.
+    # See deploy/README.md.
     tmpfs:
-      - /tmp
+      - /tmp:size=64m
     # supervisord gives each program up to 5s to stop; leave room for both.
     stop_grace_period: 15s
