@@ -3,6 +3,7 @@ Main FastAPI application
 Entry point for the Audit Filter API
 """
 import logging
+import os
 import secrets
 
 from fastapi import FastAPI
@@ -18,13 +19,19 @@ from .api.routes import router
 logger = logging.getLogger("audit.api")
 
 
+# The interactive API docs (/docs, /redoc, /openapi.json) are for development.
+# Off unless ENABLE_API_DOCS=true, so a deployment that forgets the setting
+# doesn't publish them. The dev compose override turns them on.
+DOCS_ENABLED = os.environ.get("ENABLE_API_DOCS", "").lower() == "true"
+
 # Create FastAPI application
 app = FastAPI(
     title=API_TITLE,
     version=API_VERSION,
     description=API_DESCRIPTION,
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if DOCS_ENABLED else None,
+    redoc_url="/redoc" if DOCS_ENABLED else None,
+    openapi_url="/openapi.json" if DOCS_ENABLED else None,
 )
 
 # Include API routes
@@ -37,7 +44,7 @@ async def root():
     return {
         "message": "Audit Filter API",
         "version": API_VERSION,
-        "docs": "/docs",
+        "docs": "/docs" if DOCS_ENABLED else None,
         "health": "/api/health",
     }
 

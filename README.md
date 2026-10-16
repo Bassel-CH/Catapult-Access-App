@@ -25,7 +25,7 @@ the authoritative counts and report always come from `/api/report`.
 ```bash
 # terminal 1
 cd backend && pip install -r requirements.txt
-python -m uvicorn app.main:app --reload        # http://localhost:8000  (docs at /docs)
+ENABLE_API_DOCS=true python -m uvicorn app.main:app --reload   # http://localhost:8000  (docs at /docs)
 
 # terminal 2
 cd frontend && npm install
