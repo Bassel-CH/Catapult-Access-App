@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 #
-# Audit Filter API — production image.
+# Audit Filter API — backend-only image, used by the dev stack
+# (docker-compose.yml + override). Production runs the combined nginx + API
+# image from the root Dockerfile instead.
 # Build context is backend/ :  docker build -t audit-backend ./backend
 
 FROM python:3.12-slim
@@ -42,8 +44,8 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 
 # No --reload: it runs a file-watching supervisor and reloads on change. Correct
 # in dev, wrong in prod (extra process, extra memory, restarts on a stray write).
-# --proxy-headers makes uvicorn trust X-Forwarded-Proto/For from the reverse
-# proxy we add next phase, so request.url reflects https:// rather than the
+# --proxy-headers makes uvicorn trust X-Forwarded-Proto/For from a reverse
+# proxy in front of it, so request.url reflects https:// rather than the
 # container's own http://. --forwarded-allow-ips is scoped to the Docker bridge
 # subnet, not "*", so only an in-network proxy can set those headers.
 CMD ["uvicorn", "app.main:app", \
