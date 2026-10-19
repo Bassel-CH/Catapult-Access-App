@@ -16,6 +16,7 @@ the authoritative counts and report always come from `/api/report`.
 | `backend/` | FastAPI + pandas. Owns ingest, permission ids, decisions and the report. |
 | `frontend/` | React + TS + Vite + Tailwind v4. Wired to the live backend. |
 | `prototype/option1-ui.html` | Original single-file prototype. Visual/UX reference and parity target — **do not** copy its data logic. |
+| `Dockerfile`, `deploy/` | Production image: nginx + backend in one container. **Read `deploy/README.md` before deploying.** |
 | `tools/parity_check.py` | Acceptance test: same decisions through backend and prototype, counts must match. |
 | `PHASE-C-VALIDATION.md` | Validation results against the real export, plus the local runbook. |
 
@@ -24,7 +25,7 @@ the authoritative counts and report always come from `/api/report`.
 ```bash
 # terminal 1
 cd backend && pip install -r requirements.txt
-python -m uvicorn app.main:app --reload        # http://localhost:8000  (docs at /docs)
+ENABLE_API_DOCS=true python -m uvicorn app.main:app --reload   # http://localhost:8000  (docs at /docs)
 
 # terminal 2
 cd frontend && npm install
@@ -50,6 +51,10 @@ What follows from that:
 - Restarting or redeploying the backend ends every open session. Users see
   "Session expired" and re-upload the same file; if their browser tab is still
   open, their selections and decisions come back.
+- In production, nginx and the backend share one container, and the container
+  exits if either one stops. So an nginx crash also ends every open session,
+  not just a backend crash. (nginx holds no session data itself; it is the
+  restart that loses them.)
 - Don't run more than one backend instance (for example behind a load
   balancer). A user's requests could reach an instance that doesn't hold their
   session.

@@ -1,15 +1,15 @@
 # docker-compose.override.yml  —  DEV  (auto-applied by `docker compose up`)
 #
 # This is the file you run every day. Compose merges it on top of the base
-# automatically — you don't pass any -f flags. It turns the two prod images into
-# a live-editing development stack:
+# automatically — you don't pass any -f flags. It turns the base's two services
+# into a live-editing development stack:
 #   - backend: your host code mounted in, uvicorn --reload
-#   - frontend: NOT the nginx image — the Vite dev server, with hot reload
+#   - frontend: NOT an nginx image — the Vite dev server, with hot reload
 #
-# Why the frontend looks so different from prod here: the prod frontend image is
-# nginx serving pre-built static files (the Node toolchain is thrown away in
-# stage 2). There is no dev server inside it. So for development we don't use
-# that image at all — we run a plain node container and start Vite ourselves.
+# Why the frontend looks so different from prod here: prod (root Dockerfile)
+# serves pre-built static files from nginx — the Node toolchain is thrown away
+# after the build. There is no dev server in it. So for development we run a
+# plain node container and start Vite ourselves.
 
 services:
   backend:
@@ -30,6 +30,8 @@ services:
       --host 0.0.0.0
       --port 8000
       --reload
+    environment:
+      - ENABLE_API_DOCS=true      # /docs at localhost:8000 (off in prod)
 
   frontend:
     # Replace the nginx image entirely with a bare node image for dev.
@@ -46,8 +48,8 @@ services:
     # node_modules volume above is created root-owned by Docker; forcing UID 1000
     # would make npm-as-1000 unable to write into it (EACCES on mkdir). Letting
     # the dev container run as its default (root) sidesteps that. This is a
-    # LOCAL DEV node process only — the prod frontend is the separate, hardened
-    # nginx image, so root here costs nothing. The backend keeps user:1000
+    # LOCAL DEV node process only — prod is the separate, non-root combined
+    # image, so root here costs nothing. The backend keeps user:1000
     # because its bind-mount is your editable Python source, a different case.
     # Install deps, then start Vite bound to 0.0.0.0 so it's reachable from your
     # host browser (not just from inside the container).
