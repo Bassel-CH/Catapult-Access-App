@@ -51,6 +51,10 @@ What follows from that:
 - Restarting or redeploying the backend ends every open session. Users see
   "Session expired" and re-upload the same file; if their browser tab is still
   open, their selections and decisions come back.
+- In production, nginx and the backend share one container, and the container
+  exits if either one stops. So an nginx crash also ends every open session,
+  not just a backend crash. (nginx holds no session data itself; it is the
+  restart that loses them.)
 - Don't run more than one backend instance (for example behind a load
   balancer). A user's requests could reach an instance that doesn't hold their
   session.
