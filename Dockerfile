@@ -62,11 +62,12 @@ COPY --from=frontend-build /app/dist /srv/frontend
 
 COPY deploy/nginx.conf /etc/nginx/nginx.conf
 COPY deploy/supervisord.conf /etc/supervisord.conf
-COPY deploy/require_tmpfs.py deploy/stop_container_on_crash.py /srv/deploy/
+COPY deploy/stop_container_on_crash.py /srv/deploy/
 
 # Everything runs as appuser — supervisord, nginx and uvicorn. It owns none of
 # the code or config, so the running app can't modify them. The only writable
-# place it needs is /tmp (pid files, socket, nginx temp dirs).
+# place it needs is /tmp, for pid files and a socket. Upload data never goes
+# there: nginx and the backend both keep it in memory.
 RUN useradd --system --create-home --uid 10001 --shell /usr/sbin/nologin appuser
 
 USER appuser
@@ -78,9 +79,6 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/api/health').status==200 else 1)"
 
-# The entrypoint refuses to start without an in-memory /tmp, then execs the
-# CMD, so supervisord still ends up as PID 1. See deploy/README.md for the
-# required mount and deploy/supervisord.conf for what happens when a child
-# process dies.
-ENTRYPOINT ["python", "/srv/deploy/require_tmpfs.py"]
+# supervisord is PID 1. See deploy/supervisord.conf for what happens when a
+# child process dies.
 CMD ["supervisord", "-c", "/etc/supervisord.conf"]

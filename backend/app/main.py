@@ -8,15 +8,31 @@ import secrets
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from starlette.formparsers import MultiPartParser
 
 from .config import (
     API_TITLE,
     API_VERSION,
     API_DESCRIPTION,
+    MAX_UPLOAD_SIZE,
 )
 from .api.routes import router
 
 logger = logging.getLogger("audit.api")
+
+
+# Starlette moves an uploaded file from memory to a temp file on disk once it
+# passes spool_max_size (1 MB by default), and uploads hold real permissions
+# data. Raising it above the upload limit keeps every accepted upload in memory.
+# This is a class attribute, not a documented setting: if an upgrade removed
+# it, setting it would silently do nothing, so refuse to start instead.
+if not isinstance(getattr(MultiPartParser, "spool_max_size", None), int):
+    raise RuntimeError(
+        "starlette's MultiPartParser.spool_max_size is gone, so uploads would be "
+        "written to disk. Find its replacement before upgrading; "
+        "tests/test_upload_stays_in_memory.py checks the result."
+    )
+MultiPartParser.spool_max_size = MAX_UPLOAD_SIZE + 1024 * 1024
 
 
 # The interactive API docs (/docs, /redoc, /openapi.json) are for development.

@@ -16,7 +16,7 @@ the authoritative counts and report always come from `/api/report`.
 | `backend/` | FastAPI + pandas. Owns ingest, permission ids, decisions and the report. |
 | `frontend/` | React + TS + Vite + Tailwind v4. Wired to the live backend. |
 | `prototype/option1-ui.html` | Original single-file prototype. Visual/UX reference and parity target — **do not** copy its data logic. |
-| `Dockerfile`, `deploy/` | Production image: nginx + backend in one container. **Read `deploy/README.md` before deploying** — it needs an in-memory `/tmp`. |
+| `Dockerfile`, `deploy/` | Production image: nginx + backend in one container. **Read `deploy/README.md` before deploying.** |
 | `tools/parity_check.py` | Acceptance test: same decisions through backend and prototype, counts must match. |
 | `PHASE-C-VALIDATION.md` | Validation results against the real export, plus the local runbook. |
 
@@ -44,8 +44,7 @@ the dev proxy, mock mode) and `PHASE-C-VALIDATION.md` for what's been verified.
 
 Uploaded data lives only in the backend's memory: one private session per
 upload, deleted after 60 idle minutes. This is deliberate. Nothing is written
-to a database. Uploads over 1 MB do pass through a temp file, so production
-keeps `/tmp` in memory (see `deploy/README.md`).
+to disk or to a database.
 
 What follows from that:
 
