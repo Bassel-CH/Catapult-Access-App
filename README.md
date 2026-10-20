@@ -58,6 +58,11 @@ What follows from that:
 - Don't run more than one backend instance (for example behind a load
   balancer). A user's requests could reach an instance that doesn't hold their
   session.
+- One backend process also means uploads are processed one at a time: while
+  one CSV is being parsed, other requests wait. A file near the 10 MB limit
+  takes about a quarter of a second. That's a design consequence of this rule,
+  not a tuning setting. More backend processes would remove it, but only once
+  sessions no longer live in one process's memory.
 
 To lift this, sessions would have to move to a shared store every instance can
 reach (Redis, for example), keeping the same 60-minute expiry. The code change
