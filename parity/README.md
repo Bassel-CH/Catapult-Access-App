@@ -1,13 +1,17 @@
-# Parity check — the rebuild's acceptance test
+# Backend vs. an independent reference implementation
 
 Proves the rebuilt app produces the **same audit numbers** as an independent
 reference implementation, on the real `JulyPermissions.csv`.
+
+There's a second, separate check: `tools/compare_backend_to_prototype.py`
+compares the live backend with the original prototype instead. Passing one
+says nothing about the other.
 
 ## Run
 
 ```bash
 # from the repo root, with backend deps installed (backend/requirements.txt)
-python parity/check_parity.py
+python parity/compare_backend_to_reference.py
 ```
 
 Exit `0` = parity holds; `1` = a mismatch (printed as a table). Node must be on
@@ -23,7 +27,7 @@ total:
 - **`reference_runner.mjs`** — an independent Node implementation of the agreed
   audit rules. Same grouping as the original prototype, no backend code
   imported, so agreement is real cross-validation rather than a tautology.
-- **`check_parity.py`** — drives the actual backend (`app.services`), the same
+- **`compare_backend_to_reference.py`** — drives the actual backend (`app.services`), the same
   code path the React app calls in production.
 
 Both are fed the same valid rows (the two real `PermissionSource` values). The

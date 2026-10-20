@@ -1,10 +1,13 @@
 """
-Parity check — the acceptance test for Phase C.
+Compares the live backend with the original prototype (prototype/option1-ui.html).
+
+Not to be confused with parity/compare_backend_to_reference.py, which checks
+the backend's audit rules against an independent rewrite instead.
 
 Runs one identical set of selections + Keep/Revoke decisions through:
 
   * the LIVE backend  (/api/upload -> /api/audit-tree -> /api/report)
-  * the PROTOTYPE     (its own parseCSV/groupUser, via tools/proto_harness.js)
+  * the PROTOTYPE     (its own parseCSV/groupUser, via tools/run_prototype_logic.js)
 
 and asserts the five headline counts match. The recipe is expressed in terms
 both sides can understand — person name, domain, permission name — because the
@@ -15,7 +18,7 @@ Usage:
     # terminal 1
     cd backend && python -m uvicorn app.main:app
     # terminal 2
-    python tools/parity_check.py [path/to/report.csv]
+    python tools/compare_backend_to_prototype.py [path/to/report.csv]
 
 Requires: httpx (already in backend/requirements.txt) and node on PATH.
 Exits non-zero if the counts diverge.
@@ -89,7 +92,7 @@ def backend_summary(c: httpx.Client, names: list[str], recipe: dict) -> dict:
         "staff_names": names,
         "department": "Parity Check",
         "period_label": "Parity",
-        "manager_name": "parity_check.py",
+        "manager_name": "compare_backend_to_prototype.py",
         "decisions": decisions,
         "highlights": {},
     })
@@ -116,7 +119,7 @@ def main() -> int:
 
     # ── prototype side ──────────────────────────────────────────────────────
     subprocess.run(
-        ["node", str(ROOT / "tools" / "proto_harness.js"),
+        ["node", str(ROOT / "tools" / "run_prototype_logic.js"),
          str(csv_path), str(recipe_path), str(proto_out)],
         check=True,
     )

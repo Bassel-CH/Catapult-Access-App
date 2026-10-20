@@ -1,5 +1,8 @@
 """
-Parity check — the rebuild's acceptance test.
+Compares the backend's audit rules with an independent reference implementation.
+
+Not to be confused with tools/compare_backend_to_prototype.py, which checks the
+live backend against the original prototype instead.
 
 Runs identical decision scenarios through BOTH:
   - an independent reference implementation of the agreed audit rules
@@ -13,7 +16,7 @@ own (person, group, app), NOT across the whole (person, app). This is a
 deliberate, documented divergence from prototype/option1-ui.html's broader
 sweep; see reference_runner.mjs and parity/README.md.
 
-Run from the repo root:  python parity/check_parity.py
+Run from the repo root:  python parity/compare_backend_to_reference.py
 Exit code 0 = parity holds; 1 = mismatch (details printed).
 """
 import json
