@@ -1,5 +1,5 @@
 /**
- * Phase 3 — Report: show the authoritative summary counts from /api/report and
+ * Report step: show the authoritative summary counts from /api/report and
  * let the user open/download the rendered HTML report, or the printable review
  * packet from /api/review-document.
  */
@@ -18,7 +18,7 @@ function SummaryCard({ n, label, color }: { n: number; label: string; color?: st
   )
 }
 
-export default function Phase3() {
+export default function Report() {
   const { state, reset, guard } = useAudit()
   const report = state.report
   if (!report) return null

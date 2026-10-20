@@ -1,9 +1,9 @@
 import { useAudit } from './state/AuditContext'
 import { usingMocks } from './services/api'
 import { Stepper } from './components/Stepper'
-import Phase1 from './components/Phase1'
-import Phase2 from './components/Phase2'
-import Phase3 from './components/Phase3'
+import ItSetup from './components/ItSetup'
+import ManagerAudit from './components/ManagerAudit'
+import Report from './components/Report'
 
 export default function App() {
   const { state } = useAudit()
@@ -17,9 +17,9 @@ export default function App() {
         <Stepper />
       </div>
 
-      {state.phase === 1 && <Phase1 />}
-      {state.phase === 2 && <Phase2 />}
-      {state.phase === 3 && <Phase3 />}
+      {state.phase === 1 && <ItSetup />}
+      {state.phase === 2 && <ManagerAudit />}
+      {state.phase === 3 && <Report />}
 
       <p className="text-xs text-muted text-center mt-8">
         {usingMocks ? 'Running on mock data' : 'Connected to the live API'} · decisions live only in this tab until the report is generated.

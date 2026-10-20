@@ -1,5 +1,5 @@
 /**
- * Phase 1 — IT setup: load the report, define the audit (department + period),
+ * IT setup step: load the report, define the audit (department + period),
  * then pick the people to review and optionally highlight permissions of
  * interest. Highlights are keyed by the audit-tree permission ids, so they
  * carry straight into the manager screen.
@@ -298,7 +298,7 @@ function SelectUsersPanel() {
   )
 }
 
-export default function Phase1() {
+export default function ItSetup() {
   const { state, periodLabel, startAudit, guard } = useAudit()
   const canLock = state.selected.length > 0 && state.dept.trim().length > 0
   const [tab, setTab] = useState<'users' | 'search'>('users')

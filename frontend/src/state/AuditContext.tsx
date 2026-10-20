@@ -126,7 +126,7 @@ function reducer(state: AuditState, action: Action): AuditState {
       return { ...state, error: action.message, loading: false, sessionLost: false }
     case 'SESSION_LOST':
       // The backend forgot the dataset (uvicorn restarted). Send the user back
-      // to Phase 1 to re-upload, but park their work and keep the audit
+      // to the IT setup step to re-upload, but park their work and keep the audit
       // definition so nothing has to be retyped.
       return {
         ...state,
@@ -288,7 +288,7 @@ export function AuditProvider({ children }: { children: ReactNode }) {
 
   /**
    * Single place every API failure lands. A lost backend session is its own
-   * outcome (recoverable, routes to Phase 1); everything else becomes an error
+   * outcome (recoverable, routes to the IT setup step); everything else becomes an error
    * message — the backend's `detail` when we have one, never a stack trace.
    */
   const fail = useCallback((e: unknown) => {
@@ -313,7 +313,7 @@ export function AuditProvider({ children }: { children: ReactNode }) {
   const uploadFile = useCallback((file: File) => guard(async () => {
     const upload = await api.upload(file)
     // Load the full dataset (filter with no criteria) to build the user list,
-    // then fetch the reviewable trees once so highlighting works in Phase 1.
+    // then fetch the reviewable trees once so highlighting works in the IT setup step.
     const filtered = await api.filter({})
     const users = deriveUsers(filtered.data)
     const tree = await api.auditTree({ staff_names: users.map((u) => u.name) })
