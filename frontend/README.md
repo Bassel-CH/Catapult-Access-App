@@ -1,4 +1,4 @@
-# Catapult Access App — Frontend
+# Catapult Applications Audit — Frontend
 
 React + TypeScript + Vite + Tailwind v4. Three-phase audit UI (IT setup →
 manager audit → report), **wired to the live FastAPI backend** as of Phase C.
@@ -41,9 +41,9 @@ src/
     cascade.ts           selectors + the Access-cascade business rule
     format.ts, download.ts
   components/
-    Phase1.tsx           upload, define audit, select users + highlight
-    Phase2.tsx           Keep/Revoke tree, bulk actions, cascade lock, rollups
-    Phase3.tsx           report summary + open/download HTML
+    ItSetup.tsx          upload, define audit, select users + highlight
+    ManagerAudit.tsx     Keep/Revoke tree, bulk actions, cascade lock, rollups
+    Report.tsx           report summary + open/download HTML
 ```
 
 ## Networking (Phase C)
@@ -61,7 +61,7 @@ src/
 3. **Lost-session recovery.** The backend keeps the uploaded CSV in memory, so
    restarting uvicorn mid-audit makes every call fail with
    `400 "No data loaded"`. `isSessionLost()` in `services/api.ts` detects exactly
-   that case; the store then parks the manager's decisions, returns to Phase 1
+   that case; the store then parks the manager's decisions, returns to the IT setup step
    with a re-upload prompt, and restores the parked work when the *same* file
    (same name + same row count) is uploaded again. This is only safe because
    permission ids are a deterministic md5 of the row's own fields — the same

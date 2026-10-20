@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# Audit Filter API — backend-only image, used by the dev stack
+# Catapult Applications Audit backend — backend-only image, used by the dev stack
 # (docker-compose.yml + override). Production runs the combined nginx + API
 # image from the root Dockerfile instead.
 # Build context is backend/ :  docker build -t audit-backend ./backend

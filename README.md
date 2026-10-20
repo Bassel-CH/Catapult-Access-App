@@ -1,4 +1,4 @@
-# Catapult-Access-App
+# Catapult Applications Audit
 
 Monthly department access-audit tool. IT uploads the org-wide permissions export,
 selects staff and highlights permissions of interest; a manager reviews each
@@ -17,7 +17,8 @@ the authoritative counts and report always come from `/api/report`.
 | `frontend/` | React + TS + Vite + Tailwind v4. Wired to the live backend. |
 | `prototype/option1-ui.html` | Original single-file prototype. Visual/UX reference and parity target — **do not** copy its data logic. |
 | `Dockerfile`, `deploy/` | Production image: nginx + backend in one container. **Read `deploy/README.md` before deploying.** |
-| `tools/parity_check.py` | Acceptance test: same decisions through backend and prototype, counts must match. |
+| `tools/compare_backend_to_prototype.py` | Same decisions through the live backend and the original prototype; counts must match. |
+| `parity/compare_backend_to_reference.py` | Same decision scenarios through the backend and an independent rewrite of the audit rules; counts must match. |
 | `PHASE-C-VALIDATION.md` | Validation results against the real export, plus the local runbook. |
 
 ## Run
@@ -35,7 +36,11 @@ npm run dev                                    # http://localhost:5173
 Backend tests: each file in `backend/tests/` runs on its own, e.g.
 `cd backend && python -m tests.test_sessions`. All use small made-up data
 except `test_audit_workflow`, which needs the real `JulyPermissions.csv`.
-Parity check (backend must be running): `python tools/parity_check.py`
+The two comparison checks test different things; passing one says nothing about
+the other. Both need the real `JulyPermissions.csv` and `node`:
+
+- `python tools/compare_backend_to_prototype.py` (backend must be running)
+- `python parity/compare_backend_to_reference.py`
 
 See `frontend/README.md` for how the app is wired (the `services/api.ts` seam,
 the dev proxy, mock mode) and `PHASE-C-VALIDATION.md` for what's been verified.

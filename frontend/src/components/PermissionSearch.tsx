@@ -7,7 +7,7 @@
  * the same state.selected the user list reads, so picking someone here shows
  * up as picked there.
  *
- * Renders bare (no Panel) — Phase1 owns the panel and the tab strip.
+ * Renders bare (no Panel) — ItSetup owns the panel and the tab strip.
  */
 import { useMemo, useState } from 'react'
 import { useAudit } from '../state/AuditContext'

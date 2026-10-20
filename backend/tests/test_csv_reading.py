@@ -5,7 +5,7 @@ Synthetic data only. Run from backend/:  python -m tests.test_csv_reading
 """
 import asyncio
 
-from app.services.csv_service import CSVService
+from app.services.uploaded_dataset import UploadedDataset
 
 HEADER = "StaffId,StaffName,StaffEmailAddress,DomainName,PermissionName,PositionName,PermissionSource\n"
 ROWS = (
@@ -14,8 +14,8 @@ ROWS = (
 )
 
 
-def _load(raw: bytes) -> CSVService:
-    svc = CSVService()
+def _load(raw: bytes) -> UploadedDataset:
+    svc = UploadedDataset()
     asyncio.run(svc.process_upload(raw, "t.csv"))
     return svc
 

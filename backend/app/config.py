@@ -1,5 +1,5 @@
 """
-Configuration settings for the Audit Filter API
+Configuration settings for the Catapult Applications Audit backend
 """
 
 # No upload or export directories: uploads are parsed in memory and exports
@@ -17,15 +17,12 @@ REQUIRED_COLUMNS = [
 ]
 
 # API Settings
-API_TITLE = "Audit Filter API"
+API_TITLE = "Catapult Applications Audit API"
 API_VERSION = "1.0.0"
 API_DESCRIPTION = """
-Professional audit report filtering and export system.
-
-## Features
-* Upload CSV audit reports
-* Filter by staff, permissions, domains, positions, and permission source
-* Export filtered data with department assignments
+Backend for the Catapult Applications Audit: upload the monthly permissions
+export, review the selected staff's access, and produce the completed audit
+report.
 """
 
 # File upload limits

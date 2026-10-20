@@ -1,5 +1,8 @@
 """
-Parity check — the rebuild's acceptance test.
+Compares the backend's audit rules with an independent reference implementation.
+
+Not to be confused with tools/compare_backend_to_prototype.py, which checks the
+live backend against the original prototype instead.
 
 Runs identical decision scenarios through BOTH:
   - an independent reference implementation of the agreed audit rules
@@ -13,7 +16,7 @@ own (person, group, app), NOT across the whole (person, app). This is a
 deliberate, documented divergence from prototype/option1-ui.html's broader
 sweep; see reference_runner.mjs and parity/README.md.
 
-Run from the repo root:  python parity/check_parity.py
+Run from the repo root:  python parity/compare_backend_to_reference.py
 Exit code 0 = parity holds; 1 = mismatch (details printed).
 """
 import json
@@ -26,15 +29,15 @@ CSV = REPO / "JulyPermissions.csv"
 BACKEND = REPO / "backend"
 
 sys.path.insert(0, str(BACKEND))
-from app.services.csv_service import CSVService          # noqa: E402
-from app.services.report_service import ReportService    # noqa: E402
+from app.services.uploaded_dataset import UploadedDataset  # noqa: E402
+from app.services.report_service import ReportService      # noqa: E402
 
 
 def is_access(name: str) -> bool:
     return name.strip().lower() == "access"
 
 
-# Same four scenarios as prototype_runner.mjs, same logic.
+# Same four scenarios as reference_runner.mjs, same logic.
 SCENARIOS = {
     "keep_all": lambda leaf: "keep",
     "keep_access_revoke_rest": lambda leaf: "keep" if is_access(leaf["name"]) else "revoke",
@@ -45,7 +48,7 @@ SCENARIOS = {
 
 def backend_results() -> dict:
     import asyncio
-    svc = CSVService()
+    svc = UploadedDataset()
     # process_upload is async; asyncio.run is the modern, warning-free way to
     # drive one coroutine from a sync script (get_event_loop() is deprecated).
     asyncio.run(svc.process_upload(CSV.read_bytes(), CSV.name))

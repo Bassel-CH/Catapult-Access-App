@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# Audit Filter — combined production image: nginx + FastAPI in one container.
+# Catapult Applications Audit — combined production image: nginx + FastAPI in one container.
 # Build context is the repo root :  docker build -t audit-app .
 #
 # This is the PROD path only. Dev still uses docker-compose.yml + the override
