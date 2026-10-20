@@ -7,8 +7,10 @@
 #
 # One container (built from the root Dockerfile) runs nginx and uvicorn under
 # supervisord. nginx serves the SPA and forwards /api/ to uvicorn inside the
-# container; uvicorn is not published, so 8080 is the only way in — including
-# health checks: http://<host>:8080/api/health
+# container; uvicorn is not published, so 8080 is the only way in. It's bound
+# to the host's loopback, so health checks run on the host itself:
+# http://127.0.0.1:8080/api/health. Users reach the app over HTTPS through the
+# host's nginx (deploy/host-nginx.conf.example).
 
 # Its own project name. Without it, Compose would use the folder name — the same
 # project as the dev stack — and `--remove-orphans` here would delete your dev
@@ -22,7 +24,12 @@ services:
       dockerfile: Dockerfile
     image: audit-app
     ports:
-      - "8080:8080"
+      # Loopback only: the host's nginx (deploy/host-nginx.conf.example) is the
+      # one thing allowed to reach 8080, because the container trusts the
+      # headers it sends. If the front proxy ever runs in a container instead
+      # of on the host, it can't reach the host's 127.0.0.1; put it on the same
+      # compose network and have it use app:8080, rather than widening this.
+      - "127.0.0.1:8080:8080"
     # If nginx or uvicorn dies, the container exits (see deploy/supervisord.conf)
     # and this brings it back. Every restart loses in-memory sessions.
     restart: unless-stopped
