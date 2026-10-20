@@ -33,5 +33,12 @@ services:
     # If nginx or uvicorn dies, the container exits (see deploy/supervisord.conf)
     # and this brings it back. Every restart loses in-memory sessions.
     restart: unless-stopped
+    # A hard 1 GB limit, matching what deploy/README.md tells hosts to reserve.
+    # Running out then kills something in this container (Docker records it as
+    # OOMKilled) and it restarts, instead of the host picking a victim. Setting
+    # the swap limit to the same value means no swap: swap would write the
+    # app's memory, including permission data, to the host's disk.
+    mem_limit: 1g
+    memswap_limit: 1g
     # supervisord gives each program up to 5s to stop; leave room for both.
     stop_grace_period: 15s

@@ -23,7 +23,7 @@ deploy the image any other way (plain `docker run`, ECS, another orchestrator).
 | **Port 8080, plain HTTP, reachable only by the front proxy.** | The only port; the backend (8000) is not reachable from outside the container. The container never handles HTTPS. See "HTTPS is always the host's job" below — this is a hard requirement with a specific control for each host. |
 | **Health check: `GET /api/health` on 8080.** | Goes through nginx to the backend, so one check covers both. |
 | **Allow ~15 s to stop.** | Each process gets up to 5 s to finish in-flight requests. |
-| **Memory: 512 MB for the container.** | Uploads and sessions are held in memory. Measured behind the reference host nginx with 9.5 MB files: 111 MB idle, 265 MB with ten sessions held, 306 MB at peak with five uploads arriving at the same moment. A session with a real (~0.65 MB) export costs about 3.5 MB. The backend processes one upload at a time, so simultaneous uploads mostly queue rather than stack. The host's nginx needs its own ~20 MB plus ~11 MB per upload in progress (70 MB at peak in the same test). |
+| **Reserve 1 GB of memory for the container, and no swap.** | This is what the host must set aside, not what the app was seen using. Uploads and sessions live only in memory, and running out of it kills the container mid-audit and loses every open session, while a gigabyte costs nothing on any host we'd use. So headroom is cheaper than precision here. The highest use seen was about 300 MB (one local test, with synthetic data; real-shaped data likely uses more). No swap, because swap would write that memory, including permission data, to the host's disk. `docker-compose.prod.yml` sets both. The host's nginx needs its own ~20 MB plus ~11 MB per upload in progress. |
 
 No environment variables or secrets are needed. Leave `ENABLE_API_DOCS` unset:
 it turns on the backend's interactive API docs, which are for development. The image runs as a non-root
@@ -122,7 +122,7 @@ On a VM, behind the host nginx:
 
 ```bash
 docker run -d --name audit-app -p 127.0.0.1:8080:8080 \
-  --memory 512m \
+  --memory 1g --memory-swap 1g \
   --restart unless-stopped --stop-timeout 15 \
   audit-app
 ```
@@ -137,7 +137,8 @@ Only the parts that matter for this image, in the container definition:
   "image": "<registry>/audit-app:<tag>",
   "essential": true,
   "portMappings": [{ "containerPort": 8080, "protocol": "tcp" }],
-  "memory": 512,
+  "memory": 1024,
+  "linuxParameters": { "maxSwap": 0 },
   "healthCheck": {
     "command": ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/api/health').status==200 else 1)"],
     "interval": 30, "timeout": 5, "retries": 3, "startPeriod": 15
@@ -158,7 +159,10 @@ cluster:
 - **ECS ignores the image's own `HEALTHCHECK`** ("Amazon ECS doesn't monitor
   Docker health checks that are embedded in a container image"), which is why
   the task definition repeats it.
-- `memory` is in MiB.
+- `memory` is in MiB and is a hard limit.
+- `maxSwap: 0` turns swap off for the container. Our understanding (not
+  verified) is that leaving it out on EC2 makes the container follow the
+  instance's own swap setting, so set it explicitly. Fargate has no swap.
 - The image needs no special mounts, so ECS on EC2 and on Fargate should both
   work. Neither has been tried.
 
