@@ -18,6 +18,9 @@ import type {
   ReviewDocumentRequest, ExportRequest,
 } from '../types/api'
 import * as mock from '../mocks/mockApi'
+import { ApiError, errorDetail } from '../lib/apiErrors'
+
+export { ApiError }
 
 export interface AuditApi {
   upload(file: File): Promise<UploadResponse>
@@ -37,28 +40,11 @@ export interface AuditApi {
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 
 /**
- * A failed API call, carrying the backend's own `detail` string so the UI can
- * show FastAPI's message instead of a bare status code — and so callers can
- * branch on *which* failure it was rather than string-matching a Error.message.
- */
-export class ApiError extends Error {
-  readonly status: number
-  readonly detail: string
-
-  constructor(status: number, detail: string) {
-    super(`${status}: ${detail}`)
-    this.name = 'ApiError'
-    this.status = status
-    this.detail = detail
-  }
-}
-
-/**
- * True when the backend has no dataset in memory.
+ * True when the backend has no dataset in memory for this tab.
  *
- * The backend keeps the uploaded CSV in a module-level CSVService instance, so
- * restarting uvicorn (or an idle redeploy) wipes it mid-audit and every
- * subsequent call answers 400 "No data loaded. Please upload a CSV first."
+ * The backend keeps each upload only in memory, so a restart or 60 idle
+ * minutes wipes it mid-audit and every later call answers 400
+ * "No data loaded. Please upload a CSV first."
  * That is a recoverable state — the user just needs to re-upload — so it must
  * not surface as a generic error. Matching on the 400 + phrase pair is
  * deliberate: NoDataLoadedError is the only 400 that carries it.
@@ -95,28 +81,6 @@ let sessionId: string | null = null
 
 function sessionHeaders(): Record<string, string> {
   return sessionId ? { 'X-Session-Id': sessionId } : {}
-}
-
-/**
- * Pull the cleanest possible message out of a failed response.
- *
- * FastAPI shapes differ: HTTPException gives {detail: "..."}, request
- * validation gives {detail: [{loc, msg, ...}]}, and main.py's catch-all gives
- * {error, detail}. Anything non-JSON (proxy error, HTML error page) falls back
- * to the status text so a raw page never reaches the UI.
- */
-async function errorDetail(res: Response): Promise<string> {
-  try {
-    const body = await res.json()
-    const d = body?.detail
-    if (typeof d === 'string') return d
-    if (Array.isArray(d)) {
-      return d.map((e) => (typeof e?.msg === 'string' ? e.msg : JSON.stringify(e))).join('; ')
-    }
-    if (typeof body?.error === 'string') return body.error
-    if (d != null) return JSON.stringify(d)
-  } catch { /* non-JSON error body */ }
-  return res.statusText || `Request failed (${res.status})`
 }
 
 /** Throw a typed ApiError unless the response is OK. */
