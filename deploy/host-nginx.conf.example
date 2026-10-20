@@ -1,0 +1,60 @@
+# Reference nginx config for the machine in front of the audit app container,
+# for a VM deployment. On AWS the load balancer does this job instead.
+#
+# The container serves plain HTTP on 127.0.0.1:8080 and never handles HTTPS.
+# This file is what makes the app reachable over HTTPS. Nothing tests it
+# automatically; deploy/README.md says how it was checked.
+#
+# To use: copy to /etc/nginx/sites-available/audit-app (Debian/Ubuntu) or
+# /etc/nginx/conf.d/audit-app.conf, replace every CHANGE-ME, then run
+# `nginx -t` and reload nginx.
+
+# Someone typing the name without https:// lands here and is sent to HTTPS.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name CHANGE-ME.example.internal;
+
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name CHANGE-ME.example.internal;
+    server_tokens off;
+
+    ssl_certificate     /etc/ssl/CHANGE-ME/fullchain.pem;
+    ssl_certificate_key /etc/ssl/CHANGE-ME/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    # These three must match the container's own nginx (deploy/nginx.conf).
+    # A stock nginx accepts only 1 MB bodies and writes anything over about
+    # 16 KB to a temp file on this machine's disk, and uploads and exports are
+    # real permissions data.
+    #
+    # Upload going in: accept up to the app's limit, and keep it in memory.
+    client_max_body_size    11m;
+    client_body_buffer_size 11m;
+    # Export coming back: 0 means nginx may not spill the response to a temp
+    # file. It keeps what fits in its small memory buffers and otherwise makes
+    # the container wait until the browser has read more.
+    proxy_max_temp_file_size 0;
+
+    # ---- Phase two: access layer goes here ----------------------------------
+    # Allowlists and sign-in belong in this server block, so they apply to
+    # every request before it reaches the location below. Not part of phase
+    # one; leave this empty until then.
+    # -------------------------------------------------------------------------
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+
+        # The container trusts these and passes them to the app. Always set
+        # them here, replacing anything the browser sent.
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+        proxy_set_header X-Forwarded-For   $remote_addr;
+    }
+}
