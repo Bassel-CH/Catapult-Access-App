@@ -116,6 +116,20 @@ Allowlists and sign-in go where HTTPS ends, not in the container:
 - **AWS:** ALB listener rules (which can require sign-in). No file in this repo
   owns those; they live in the AWS account. Phase two should start from that.
 
+## Version tag
+
+The image is built as `audit-app:<IMAGE_TAG>`. Set `IMAGE_TAG` in a `.env`
+file next to the compose files (copy `.env.example`) to the git commit you're
+deploying, then build:
+
+```bash
+echo "IMAGE_TAG=$(git rev-parse --short HEAD)" > .env
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Without it, builds are tagged `local`. To see which code a running container
+came from: `docker inspect -f '{{.Config.Image}}' audit-prod-app-1`.
+
 ## Plain docker run
 
 On a VM, behind the host nginx:
@@ -124,7 +138,7 @@ On a VM, behind the host nginx:
 docker run -d --name audit-app -p 127.0.0.1:8080:8080 \
   --memory 1g --memory-swap 1g \
   --restart unless-stopped --stop-timeout 15 \
-  audit-app
+  audit-app:<tag>
 ```
 
 ## ECS task definition
@@ -171,7 +185,7 @@ cluster:
 ```bash
 docker exec <container> supervisorctl status     # are nginx and uvicorn up?
 docker logs <container>                          # nginx, uvicorn and supervisord, interleaved
-docker run --rm audit-app python -V              # one-off command instead of the app
+docker run --rm audit-app:<tag> python -V        # one-off command instead of the app
 ```
 
 supervisord logs one `CRIT ... without any HTTP authentication` line at
