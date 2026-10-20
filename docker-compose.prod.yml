@@ -22,7 +22,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: audit-app
+    # Tagged with IMAGE_TAG from .env (see .env.example), so a running
+    # container shows which code it came from. Untagged builds are "local".
+    image: audit-app:${IMAGE_TAG:-local}
     ports:
       # Loopback only: the host's nginx (deploy/host-nginx.conf.example) is the
       # one thing allowed to reach 8080, because the container trusts the
