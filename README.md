@@ -1,4 +1,4 @@
-# Catapult-Access-App
+# Catapult Applications Audit
 
 Monthly department access-audit tool. IT uploads the org-wide permissions export,
 selects staff and highlights permissions of interest; a manager reviews each

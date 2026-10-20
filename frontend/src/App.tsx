@@ -11,7 +11,7 @@ export default function App() {
     <div className="max-w-[1040px] mx-auto px-5 pt-6 pb-24">
       <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
         <div>
-          <h1 className="text-[22px] font-semibold m-0">Department Access Audit</h1>
+          <h1 className="text-[22px] font-semibold m-0">Catapult Applications Audit</h1>
           <p className="text-muted text-[13px] m-0">Rotating monthly permission review — IT setup, then manager sign-off.</p>
         </div>
         <Stepper />

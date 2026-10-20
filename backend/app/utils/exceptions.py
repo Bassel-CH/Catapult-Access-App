@@ -2,26 +2,26 @@
 Custom exceptions for better error handling
 """
 
-class AuditFilterException(Exception):
-    """Base exception for audit filter application"""
+class AppError(Exception):
+    """Base for the errors this app raises on purpose."""
     pass
 
 
-class InvalidCSVError(AuditFilterException):
+class InvalidCSVError(AppError):
     """Raised when CSV file is invalid or malformed"""
     pass
 
 
-class NoDataLoadedError(AuditFilterException):
+class NoDataLoadedError(AppError):
     """Raised when trying to filter/export without loaded data"""
     pass
 
 
-class FilterError(AuditFilterException):
+class FilterError(AppError):
     """Raised when filter operation fails"""
     pass
 
 
-class ExportError(AuditFilterException):
+class ExportError(AppError):
     """Raised when export generation fails"""
     pass

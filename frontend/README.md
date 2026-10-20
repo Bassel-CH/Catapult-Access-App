@@ -1,4 +1,4 @@
-# Catapult Access App — Frontend
+# Catapult Applications Audit — Frontend
 
 React + TypeScript + Vite + Tailwind v4. Three-phase audit UI (IT setup →
 manager audit → report), **wired to the live FastAPI backend** as of Phase C.

@@ -268,8 +268,8 @@ ${note ? `<div class="itn">Note: ${esc(note)}</div>` : ''}</div>${badge}</div>`
     return `<details class="uc" open><summary><span class="s-name">${esc(p.staff_name)} <span class="mut">· ${esc(p.email)}</span></span></summary>${groups}</details>`
   }).join('')
 
-  return pageShell(`Access Audit — ${req.department ?? ''}`, `
-<h1>Department Access Audit — ${esc(req.department ?? '')}</h1>
+  return pageShell(`Catapult Applications Audit — ${req.department ?? ''}`, `
+<h1>Catapult Applications Audit — ${esc(req.department ?? '')}</h1>
 <p class="sub">Manager review${req.manager_name ? ' · ' + esc(req.manager_name) : ''} · generated ${esc(new Date().toLocaleString())}</p>
 <span class="ro">Read-only report</span>
 <div class="ban">

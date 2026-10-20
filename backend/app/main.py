@@ -1,6 +1,6 @@
 """
 Main FastAPI application
-Entry point for the Audit Filter API
+Entry point for the Catapult Applications Audit backend
 """
 import logging
 import os
@@ -58,7 +58,7 @@ app.include_router(router)
 async def root():
     """Root endpoint - API welcome message."""
     return {
-        "message": "Audit Filter API",
+        "message": API_TITLE,
         "version": API_VERSION,
         "docs": "/docs" if DOCS_ENABLED else None,
         "health": "/api/health",

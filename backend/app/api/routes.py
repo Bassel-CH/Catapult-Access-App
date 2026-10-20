@@ -1,5 +1,5 @@
 """
-API routes/endpoints for the audit filter application
+API routes for the Catapult Applications Audit
 """
 import logging
 import secrets
@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, Response
 
-from ..config import MAX_UPLOAD_SIZE
+from ..config import API_TITLE, API_VERSION, MAX_UPLOAD_SIZE
 from ..models.schemas import (
     UploadResponse,
     FilterRequest,
@@ -338,6 +338,6 @@ async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "service": "Audit Filter API",
-        "version": "1.0.0"
+        "service": API_TITLE,
+        "version": API_VERSION,
     }
