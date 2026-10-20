@@ -84,6 +84,11 @@ To upgrade on purpose:
 4. Confirm the image matches the file (prints nothing but the message):
    `docker run --rm audit-backend pip freeze | diff - backend/requirements.txt && echo "IMAGE MATCHES PINS"`
 
+One package isn't in that file: `supervisor`, which only the production image
+uses to run nginx and the backend together. It's pinned in the root
+`Dockerfile` (`supervisor==4.3.0`) and has no dependencies of its own, so that
+one version is all there is. To upgrade it, change it there and rebuild.
+
 ## Real exports are never committed
 
 `*.csv` is gitignored. `JulyPermissions.csv` at the repo root is the local test
