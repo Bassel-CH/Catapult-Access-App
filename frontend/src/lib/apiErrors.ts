@@ -8,13 +8,15 @@
  * A failed API call, carrying the backend's own `detail` string so the UI can
  * show FastAPI's message instead of a bare status code — and so callers can
  * branch on *which* failure it was rather than string-matching a Error.message.
+ * The message is just the detail; the status code is kept separately for code,
+ * not shown to people.
  */
 export class ApiError extends Error {
   readonly status: number
   readonly detail: string
 
   constructor(status: number, detail: string) {
-    super(`${status}: ${detail}`)
+    super(detail)
     this.name = 'ApiError'
     this.status = status
     this.detail = detail
