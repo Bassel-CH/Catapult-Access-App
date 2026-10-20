@@ -1,11 +1,10 @@
-# docker-compose.yml  —  BASE
+# docker-compose.yml  —  BASE of the dev stack
 #
-# The shared shape of the app: which services exist, how they're named, how they
-# reach each other. This file is environment-agnostic — it does NOT decide
-# dev-vs-prod. That's what the override files do.
+# Which dev services exist and how they reach each other. The override file
+# (applied automatically) adds the live-editing details. Production doesn't use
+# this file: it runs docker-compose.prod.yml on its own.
 #
 # Run this repo from the repo root (where this file lives), NOT from backend/.
-# The build contexts below point down into each subfolder.
 #
 #   docker compose up            -> base + docker-compose.override.yml (dev)   [default]
 #   docker compose -f docker-compose.prod.yml up   (prod — standalone, one combined container)
@@ -15,16 +14,13 @@ services:
     build:
       context: ./backend          # the Dockerfile you already built & tested
       dockerfile: Dockerfile
-    image: audit-backend          # reuse the tag you built by hand
-    # No ports here in base — dev and prod expose differently, so port mapping
-    # lives in the override files. No command here either: the image's own CMD
-    # (prod uvicorn, no --reload) is the default; dev overrides it.
+    image: audit-backend
+    # Ports, the live code mount and --reload are in the override.
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    image: audit-frontend
+    # A plain Node image running the Vite dev server; the override supplies the
+    # command and the live code mount.
+    image: node:22-alpine
     depends_on:
       - backend                   # start ordering only — see note in the walkthrough
 

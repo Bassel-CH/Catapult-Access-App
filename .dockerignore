@@ -1,6 +1,6 @@
 # Used by the root Dockerfile (combined prod image), whose build context is the
-# whole repo. The backend/ and frontend/ .dockerignore files do NOT apply here —
-# they only cover builds whose context is that subfolder.
+# whole repo. backend/.dockerignore does NOT apply here — it only covers the
+# dev backend image, whose build context is backend/.
 #
 # Allowlist: exclude everything, then let back in only what the image needs.
 # New files in the repo (real CSVs, scratch exports, .env files) stay out by
