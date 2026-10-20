@@ -1,7 +1,7 @@
 """
 Service for rendering the printable per-person access review document.
 
-Takes the structured review data from CSVService.build_review() plus the
+Takes the structured review data from UploadedDataset.build_review() plus the
 audit metadata (label, manager, flagged permissions) and produces a single
 styled HTML page. Open it in a browser and Ctrl+P -> Save as PDF.
 
@@ -31,7 +31,7 @@ class DocumentService:
             manager_name: manager the packet is for
             flagged_by_person: staff name -> set of "Domain::Permission" keys
                 to highlight for THAT person only (see
-                CSVService.flagged_by_person, which builds it from the UI's
+                UploadedDataset.flagged_by_person, which builds it from the UI's
                 permission ids).
 
         Returns:

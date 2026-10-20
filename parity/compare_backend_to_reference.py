@@ -29,15 +29,15 @@ CSV = REPO / "JulyPermissions.csv"
 BACKEND = REPO / "backend"
 
 sys.path.insert(0, str(BACKEND))
-from app.services.csv_service import CSVService          # noqa: E402
-from app.services.report_service import ReportService    # noqa: E402
+from app.services.uploaded_dataset import UploadedDataset  # noqa: E402
+from app.services.report_service import ReportService      # noqa: E402
 
 
 def is_access(name: str) -> bool:
     return name.strip().lower() == "access"
 
 
-# Same four scenarios as prototype_runner.mjs, same logic.
+# Same four scenarios as reference_runner.mjs, same logic.
 SCENARIOS = {
     "keep_all": lambda leaf: "keep",
     "keep_access_revoke_rest": lambda leaf: "keep" if is_access(leaf["name"]) else "revoke",
@@ -48,7 +48,7 @@ SCENARIOS = {
 
 def backend_results() -> dict:
     import asyncio
-    svc = CSVService()
+    svc = UploadedDataset()
     # process_upload is async; asyncio.run is the modern, warning-free way to
     # drive one coroutine from a sync script (get_event_loop() is deprecated).
     asyncio.run(svc.process_upload(CSV.read_bytes(), CSV.name))

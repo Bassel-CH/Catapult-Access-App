@@ -22,7 +22,7 @@ from ..models.schemas import (
     ReportResponse,
     ReportSummary,
 )
-from ..services.csv_service import CSVService
+from ..services.uploaded_dataset import UploadedDataset
 from ..services.document_service import DocumentService
 from ..services.export_service import ExportService
 from ..services.report_service import ReportService
@@ -57,7 +57,7 @@ sessions = SessionStore()
 
 def current_session(
     x_session_id: Optional[str] = Header(None),
-) -> CSVService:
+) -> UploadedDataset:
     """
     Look up the caller's dataset from the X-Session-Id header.
 
@@ -65,12 +65,12 @@ def current_session(
     answer — the frontend's isSessionLost() matches that phrase and offers the
     re-upload recovery, so keep the wording.
     """
-    service = sessions.get(x_session_id)
-    if service is None:
+    dataset = sessions.get(x_session_id)
+    if dataset is None:
         raise HTTPException(
             status_code=400, detail="No data loaded. Please upload a CSV first."
         )
-    return service
+    return dataset
 
 
 @router.post("/upload", response_model=UploadResponse)
@@ -109,13 +109,13 @@ async def upload_csv(
                 ),
             )
 
-        csv_service = CSVService()
-        result = await csv_service.process_upload(content, file.filename)
+        dataset = UploadedDataset()
+        result = await dataset.process_upload(content, file.filename)
 
         # Only after a successful parse: drop the caller's previous dataset (if
         # any) and start a new session. A failed upload leaves the old one alone.
         sessions.end(x_session_id)
-        session_id = sessions.create(csv_service)
+        session_id = sessions.create(dataset)
 
         return UploadResponse(
             success=True,
@@ -140,7 +140,7 @@ async def upload_csv(
 @router.post("/filter", response_model=FilterResponse)
 async def apply_filters(
     filters: FilterRequest,
-    csv_service: CSVService = Depends(current_session),
+    dataset: UploadedDataset = Depends(current_session),
 ):
     """
     Apply filters to the loaded dataset.
@@ -150,7 +150,7 @@ async def apply_filters(
     """
     try:
         filter_dict = filters.model_dump(exclude_none=True)
-        result = csv_service.apply_filters(filter_dict)
+        result = dataset.apply_filters(filter_dict)
 
         return FilterResponse(
             success=True,
@@ -168,7 +168,7 @@ async def apply_filters(
 @router.post("/review")
 async def build_review(
     request: ReviewRequest,
-    csv_service: CSVService = Depends(current_session),
+    dataset: UploadedDataset = Depends(current_session),
 ):
     """
     Build a per-profile access review for the selected staff.
@@ -178,7 +178,7 @@ async def build_review(
     This is the data the printable review document is rendered from.
     """
     try:
-        reviews = csv_service.build_review(request.staff_names)
+        reviews = dataset.build_review(request.staff_names)
         return {
             "success": True,
             "reviews": reviews,
@@ -192,19 +192,19 @@ async def build_review(
 @router.post("/review-document", response_class=HTMLResponse)
 async def review_document(
     request: ReviewDocumentRequest,
-    csv_service: CSVService = Depends(current_session),
+    dataset: UploadedDataset = Depends(current_session),
 ):
     """
     Generate the printable HTML access-review document for the selected
     staff. Returns HTML; open in a browser and Save as PDF.
     """
     try:
-        reviews = csv_service.build_review(request.staff_names)
+        reviews = dataset.build_review(request.staff_names)
         html = DocumentService.build_document(
             reviews=reviews,
             audit_label=request.audit_label,
             manager_name=request.manager_name,
-            flagged_by_person=csv_service.flagged_by_person(
+            flagged_by_person=dataset.flagged_by_person(
                 request.staff_names, request.flagged
             ),
         )
@@ -217,7 +217,7 @@ async def review_document(
 @router.post("/audit-tree", response_model=AuditTreeResponse)
 async def audit_tree(
     request: AuditTreeRequest,
-    csv_service: CSVService = Depends(current_session),
+    dataset: UploadedDataset = Depends(current_session),
 ):
     """
     Build the reviewable access tree for the selected staff.
@@ -228,7 +228,7 @@ async def audit_tree(
     /report.
     """
     try:
-        people = csv_service.build_audit_tree(request.staff_names)
+        people = dataset.build_audit_tree(request.staff_names)
         return AuditTreeResponse(success=True, people=people)
     except NoDataLoadedError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -239,7 +239,7 @@ async def audit_tree(
 @router.post("/report", response_model=ReportResponse)
 async def generate_report(
     request: GenerateReportRequest,
-    csv_service: CSVService = Depends(current_session),
+    dataset: UploadedDataset = Depends(current_session),
 ):
     """
     Generate the COMPLETED audit report from captured Keep/Revoke decisions.
@@ -248,7 +248,7 @@ async def generate_report(
     and HTML are the authoritative record of the review.
     """
     try:
-        people = csv_service.build_audit_tree(request.staff_names)
+        people = dataset.build_audit_tree(request.staff_names)
         decisions = {k: v.model_dump() for k, v in request.decisions.items()}
         html, summary = ReportService.render(
             people=people,
@@ -272,7 +272,7 @@ async def generate_report(
 @router.post("/export")
 async def export_filtered_data(
     request: ExportRequest,
-    csv_service: CSVService = Depends(current_session),
+    dataset: UploadedDataset = Depends(current_session),
 ):
     """
     Export data for selected staff with a department assignment.
@@ -281,7 +281,7 @@ async def export_filtered_data(
     Returns a CSV file for download.
     """
     try:
-        df = csv_service.get_data_by_staff_ids(request.staff_ids)
+        df = dataset.get_data_by_staff_ids(request.staff_ids)
 
         if len(df) == 0:
             raise HTTPException(
@@ -321,8 +321,8 @@ async def end_session(x_session_id: Optional[str] = Header(None)):
 @router.get("/status")
 async def get_status(x_session_id: Optional[str] = Header(None)):
     """Get the caller's current data status."""
-    service = sessions.get(x_session_id)
-    summary = service.get_current_data_summary() if service else None
+    dataset = sessions.get(x_session_id)
+    summary = dataset.get_current_data_summary() if dataset else None
 
     if summary is None:
         return {

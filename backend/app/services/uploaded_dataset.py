@@ -1,11 +1,8 @@
 """
-Service for handling CSV uploads, validation, and filtering
-This is the core business logic for processing audit data
+One upload's data: reads and checks the permissions CSV, then answers
+everything the app asks about it (filters, review trees, exports).
 
-Updated for the WSL/Windows rebuild:
-- Reads cp1252 encoding (with UTF-8 fallback) to match the exported reports
-- pandas 3.0 compatible (uses .map, not the removed .applymap)
-- Drops junk rows by keeping only valid PermissionSource values
+Each session holds exactly one of these (see session_service.py).
 """
 import pandas as pd
 from typing import Dict, List, Any, Optional, Set
@@ -26,11 +23,8 @@ VALID_PERMISSION_SOURCES = ["Position-Based", "Direct Assignment"]
 logger = logging.getLogger("audit.csv")
 
 
-class CSVService:
-    """
-    Handles all CSV operations: upload, validation, filtering
-    Stores data in memory for the session
-    """
+class UploadedDataset:
+    """One uploaded permissions CSV, held in memory for its session."""
 
     def __init__(self):
         self.current_df: Optional[pd.DataFrame] = None

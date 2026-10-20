@@ -5,7 +5,7 @@ Synthetic data only. Run from backend/:  python -m tests.test_search
 """
 import asyncio
 
-from app.services.csv_service import CSVService
+from app.services.uploaded_dataset import UploadedDataset
 
 CSV = (
     "StaffId,StaffName,StaffEmailAddress,DomainName,PermissionName,PositionName,PermissionSource\n"
@@ -15,7 +15,7 @@ CSV = (
 
 
 def _search(text):
-    svc = CSVService()
+    svc = UploadedDataset()
     asyncio.run(svc.process_upload(CSV.encode(), "t.csv"))
     return [r["PermissionName"] for r in svc.apply_filters({"search_text": text})["data"]]
 

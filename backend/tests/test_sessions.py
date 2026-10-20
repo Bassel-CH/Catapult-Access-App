@@ -8,7 +8,7 @@ import io
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.services.csv_service import CSVService
+from app.services.uploaded_dataset import UploadedDataset
 from app.services.session_service import SessionStore
 
 HEADER = "StaffId,StaffName,StaffEmailAddress,DomainName,PermissionName,PositionName,PermissionSource\n"
@@ -92,7 +92,7 @@ def test_failed_upload_keeps_existing_session():
 def test_idle_session_expires_and_activity_keeps_it_alive():
     now = [0.0]
     store = SessionStore(idle_seconds=60 * 60, clock=lambda: now[0])
-    sid = store.create(CSVService())
+    sid = store.create(UploadedDataset())
 
     now[0] = 59 * 60          # 59 min later: still alive, and this use resets the timer
     assert store.get(sid) is not None
