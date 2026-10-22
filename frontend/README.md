@@ -28,7 +28,14 @@ src/
     download.ts           saving and opening files
     format.ts             month names
   components/
-    ItSetup.tsx           upload, define audit, select staff, highlight
+    it-setup/             the IT setup step, one file per piece:
+      ItSetup.tsx           the step itself, plus Export CSV and the hand-off
+      UploadPanel.tsx       upload, and the confirm before replacing an audit
+      DefineAuditPanel.tsx  department, month, manager
+      SelectStaffPanel.tsx  the staff list, search and position filter
+      StaffCard.tsx         one staff member, with their highlight tree
+      HighlightTree.tsx     highlighting permissions, with notes
+      PermissionSearch.tsx  who holds a permission, and how
     ManagerAudit.tsx      Keep/Revoke tree, bulk actions, cascade lock, rollups
     Report.tsx            report summary, open/download the report and packet
 ```
