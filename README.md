@@ -38,9 +38,10 @@ These run on your machine, not in Docker, with the backend's packages
 installed (`pip install -r backend/requirements.txt`, ideally in a virtual
 environment).
 
-Backend tests: each file in `backend/tests/` runs on its own, e.g.
-`cd backend && python -m tests.test_sessions`. All use small made-up data
-except `test_audit_workflow`, which needs the real `JulyPermissions.csv`.
+Backend tests, all at once: `cd backend && python -m tests.run_all`. They use
+small made-up data, except `test_audit_workflow`, which needs the real
+`JulyPermissions.csv` and is skipped without it. One file at a time:
+`python -m tests.test_sessions`.
 The two comparison checks test different things; passing one says nothing about
 the other. Both need the real `JulyPermissions.csv` and `node`:
 
