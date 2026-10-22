@@ -24,7 +24,7 @@ def _upload(client, text, name="t.csv"):
 
 
 def _names(client, sid):
-    r = client.post("/api/filter", json={}, headers={"X-Session-Id": sid} if sid else {})
+    r = client.get("/api/rows", headers={"X-Session-Id": sid} if sid else {})
     return r
 
 

@@ -11,9 +11,7 @@ from fastapi.responses import HTMLResponse, Response
 from ..config import API_TITLE, API_VERSION, MAX_UPLOAD_SIZE
 from ..models.schemas import (
     UploadResponse,
-    FilterRequest,
-    FilterResponse,
-    ReviewRequest,
+    RowsResponse,
     ReviewDocumentRequest,
     ExportRequest,
     AuditTreeRequest,
@@ -27,7 +25,7 @@ from ..services.document_service import DocumentService
 from ..services.export_service import ExportService
 from ..services.report_service import ReportService
 from ..services.session_service import SessionStore
-from ..utils.exceptions import InvalidCSVError, NoDataLoadedError
+from ..utils.exceptions import InvalidCSVError
 
 # Create router
 router = APIRouter(prefix="/api", tags=["audit"])
@@ -123,9 +121,6 @@ async def upload_csv(
             filename=file.filename,
             row_count=result["row_count"],
             rows_dropped=result["rows_dropped"],
-            columns=result["columns"],
-            preview=result["preview"],
-            unique_values=result["unique_values"],
             source_breakdown=result["source_breakdown"],
         )
 
@@ -137,56 +132,13 @@ async def upload_csv(
         raise internal_error("Error processing file")
 
 
-@router.post("/filter", response_model=FilterResponse)
-async def apply_filters(
-    filters: FilterRequest,
-    dataset: UploadedDataset = Depends(current_session),
-):
-    """
-    Apply filters to the loaded dataset.
-
-    Filter by staff_names, permissions, domains, positions,
-    permission_sources, and/or search_text.
-    """
+@router.get("/rows", response_model=RowsResponse)
+async def list_rows(dataset: UploadedDataset = Depends(current_session)):
+    """Every row of this session's upload. The app builds its staff list from them."""
     try:
-        filter_dict = filters.model_dump(exclude_none=True)
-        result = dataset.apply_filters(filter_dict)
-
-        return FilterResponse(
-            success=True,
-            data=result["data"],
-            total_rows=result["total_rows"],
-            filtered_rows=result["filtered_rows"],
-        )
-
-    except NoDataLoadedError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return RowsResponse(success=True, data=dataset.all_rows())
     except Exception:
-        raise internal_error("Error applying filters")
-
-
-@router.post("/review")
-async def build_review(
-    request: ReviewRequest,
-    dataset: UploadedDataset = Depends(current_session),
-):
-    """
-    Build a per-profile access review for the selected staff.
-
-    For each selected name, returns their access split into Direct
-    Assignment (reviewable, shown first) and Position-Based (reference).
-    This is the data the printable review document is rendered from.
-    """
-    try:
-        reviews = dataset.build_review(request.staff_names)
-        return {
-            "success": True,
-            "reviews": reviews,
-        }
-    except NoDataLoadedError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
-        raise internal_error("Error building review")
+        raise internal_error("Error reading rows")
 
 
 @router.post("/review-document", response_class=HTMLResponse)
@@ -209,8 +161,6 @@ async def review_document(
             ),
         )
         return HTMLResponse(content=html)
-    except NoDataLoadedError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception:
         raise internal_error("Error building document")
 
@@ -230,8 +180,6 @@ async def audit_tree(
     try:
         people = dataset.build_audit_tree(request.staff_names)
         return AuditTreeResponse(success=True, people=people)
-    except NoDataLoadedError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception:
         raise internal_error("Error building audit tree")
 
@@ -263,8 +211,6 @@ async def generate_report(
             summary=ReportSummary(**summary),
             html=html,
         )
-    except NoDataLoadedError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception:
         raise internal_error("Error generating report")
 
@@ -303,8 +249,6 @@ async def export_filtered_data(
             }
         )
 
-    except NoDataLoadedError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception:
@@ -316,21 +260,6 @@ async def end_session(x_session_id: Optional[str] = Header(None)):
     """Forget the caller's dataset now (used by "Start a new audit")."""
     sessions.end(x_session_id)
     return {"success": True}
-
-
-@router.get("/status")
-async def get_status(x_session_id: Optional[str] = Header(None)):
-    """Get the caller's current data status."""
-    dataset = sessions.get(x_session_id)
-    summary = dataset.get_current_data_summary() if dataset else None
-
-    if summary is None:
-        return {
-            "has_data": False,
-            "message": "No data loaded. Upload a CSV to begin."
-        }
-
-    return summary
 
 
 @router.get("/health")

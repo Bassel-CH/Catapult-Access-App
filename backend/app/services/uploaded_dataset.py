@@ -12,7 +12,7 @@ import logging
 import secrets
 
 from ..config import REQUIRED_COLUMNS
-from ..utils.exceptions import InvalidCSVError, NoDataLoadedError, FilterError
+from ..utils.exceptions import InvalidCSVError
 
 
 # The only two PermissionSource values that represent real permissions.
@@ -89,9 +89,6 @@ class UploadedDataset:
             return {
                 "row_count": len(df),
                 "rows_dropped": rows_dropped,
-                "columns": list(df.columns),
-                "preview": df.head(10).to_dict("records"),
-                "unique_values": self._get_unique_values(df),
                 "source_breakdown": self._get_source_breakdown(df),
             }
 
@@ -168,15 +165,6 @@ class UploadedDataset:
 
         return df
 
-    def _get_unique_values(self, df: pd.DataFrame) -> Dict[str, List[str]]:
-        """Extract unique values for filter dropdowns"""
-        return {
-            "staff_names": sorted([x for x in df["StaffName"].unique() if x]),
-            "permissions": sorted([x for x in df["PermissionName"].unique() if x]),
-            "domains": sorted([x for x in df["DomainName"].unique() if x]),
-            "positions": sorted([x for x in df["PositionName"].unique() if x]),
-        }
-
     def _get_source_breakdown(self, df: pd.DataFrame) -> Dict[str, int]:
         """
         Count rows by PermissionSource.
@@ -187,63 +175,9 @@ class UploadedDataset:
         counts = df["PermissionSource"].value_counts().to_dict()
         return {str(k): int(v) for k, v in counts.items()}
 
-    def apply_filters(self, filters: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Apply filters to the current dataset
-
-        Args:
-            filters: Dictionary of filter criteria
-
-        Returns:
-            Filtered data and statistics
-
-        Raises:
-            NoDataLoadedError: If no CSV has been uploaded
-            FilterError: If filtering operation fails
-        """
-        if self.current_df is None:
-            raise NoDataLoadedError("No data loaded. Please upload a CSV first.")
-
-        try:
-            df = self.current_df.copy()
-
-            if filters.get("staff_names"):
-                df = df[df["StaffName"].isin(filters["staff_names"])]
-
-            if filters.get("permissions"):
-                df = df[df["PermissionName"].isin(filters["permissions"])]
-
-            if filters.get("domains"):
-                df = df[df["DomainName"].isin(filters["domains"])]
-
-            if filters.get("positions"):
-                df = df[df["PositionName"].isin(filters["positions"])]
-
-            # Filter by permission source (Position-Based vs Direct Assignment)
-            if filters.get("permission_sources"):
-                df = df[df["PermissionSource"].isin(filters["permission_sources"])]
-
-            # Search across all text fields
-            if filters.get("search_text"):
-                search_term = filters["search_text"].lower()
-                mask = df.astype(str).apply(
-                    # regex=False: treat the search as plain text, so "(" or
-                    # "." are matched literally instead of as pattern syntax.
-                    lambda row: row.str.lower().str.contains(
-                        search_term, na=False, regex=False
-                    ).any(),
-                    axis=1,
-                )
-                df = df[mask]
-
-            return {
-                "data": df.to_dict("records"),
-                "total_rows": len(self.current_df),
-                "filtered_rows": len(df),
-            }
-
-        except Exception as e:
-            raise FilterError(f"Error applying filters: {str(e)}")
+    def all_rows(self) -> List[Dict[str, Any]]:
+        """Every row of the upload, one dict per row."""
+        return self.current_df.to_dict("records")
 
     def get_data_by_staff_ids(self, staff_ids: List[str]) -> pd.DataFrame:
         """
@@ -254,13 +188,7 @@ class UploadedDataset:
 
         Returns:
             Filtered dataframe
-
-        Raises:
-            NoDataLoadedError: If no CSV has been uploaded
         """
-        if self.current_df is None:
-            raise NoDataLoadedError("No data loaded. Please upload a CSV first.")
-
         return self.current_df[self.current_df["StaffId"].isin(staff_ids)].copy()
 
     def build_review(self, staff_names: List[str]) -> List[Dict[str, Any]]:
@@ -277,13 +205,7 @@ class UploadedDataset:
 
         Returns a list of profile objects, one per selected name, in the
         same order the names were given.
-
-        Raises:
-            NoDataLoadedError: If no CSV has been uploaded
         """
-        if self.current_df is None:
-            raise NoDataLoadedError("No data loaded. Please upload a CSV first.")
-
         reviews: List[Dict[str, Any]] = []
 
         for name in staff_names:
@@ -417,9 +339,6 @@ class UploadedDataset:
         Grouped by StaffName (matching build_review) so related profiles like
         "Amber Weiss" and "Amber WeissTL" stay separate.
         """
-        if self.current_df is None:
-            raise NoDataLoadedError("No data loaded. Please upload a CSV first.")
-
         people: List[Dict[str, Any]] = []
 
         for name in staff_names:
@@ -500,16 +419,3 @@ class UploadedDataset:
                                 f"{app['domain']}::{perm['name']}"
                             )
         return out
-
-    def get_current_data_summary(self) -> Optional[Dict[str, Any]]:
-        """Get summary of currently loaded data"""
-        if self.current_df is None:
-            return None
-
-        return {
-            "filename": self.filename,
-            "row_count": len(self.current_df),
-            "columns": list(self.current_df.columns),
-            "has_data": True,
-            "source_breakdown": self._get_source_breakdown(self.current_df),
-        }

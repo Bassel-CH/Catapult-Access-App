@@ -40,7 +40,7 @@ def test_file_over_limit_is_rejected_and_keeps_existing_session():
     assert r.status_code == 413
     assert "too large" in r.json()["detail"]
     # The earlier upload is untouched.
-    still = client.post("/api/filter", json={}, headers={"X-Session-Id": sid})
+    still = client.get("/api/rows", headers={"X-Session-Id": sid})
     assert still.status_code == 200
 
 

@@ -15,9 +15,6 @@ class UploadResponse(BaseModel):
     filename: str
     row_count: int
     rows_dropped: int
-    columns: List[str]
-    preview: List[Dict[str, Any]]
-    unique_values: Dict[str, List[str]]
     source_breakdown: Dict[str, int]
 
     class Config:
@@ -27,12 +24,6 @@ class UploadResponse(BaseModel):
                 "filename": "JulyPermissions.csv",
                 "row_count": 4961,
                 "rows_dropped": 2,
-                "columns": ["StaffId", "StaffName", "..."],
-                "preview": [{"StaffId": "12345", "StaffName": "John Smith"}],
-                "unique_values": {
-                    "staff_names": ["John Smith", "Jane Doe"],
-                    "permissions": ["Access", "Read Only"]
-                },
                 "source_breakdown": {
                     "Position-Based": 4163,
                     "Direct Assignment": 798
@@ -41,48 +32,10 @@ class UploadResponse(BaseModel):
         }
 
 
-class FilterRequest(BaseModel):
-    """Request body for filtering data"""
-    staff_names: Optional[List[str]] = Field(None, description="Filter by staff names")
-    permissions: Optional[List[str]] = Field(None, description="Filter by permission names")
-    domains: Optional[List[str]] = Field(None, description="Filter by domain names")
-    positions: Optional[List[str]] = Field(None, description="Filter by position names")
-    permission_sources: Optional[List[str]] = Field(
-        None,
-        description="Filter by permission source (Position-Based / Direct Assignment)"
-    )
-    search_text: Optional[str] = Field(None, description="Search across all text fields")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "staff_names": ["John Smith", "Jane Doe"],
-                "permissions": ["Access"],
-                "domains": ["Catapult EHR"],
-                "permission_sources": ["Direct Assignment"],
-                "search_text": "scheduler"
-            }
-        }
-
-
-class FilterResponse(BaseModel):
-    """Response after applying filters"""
+class RowsResponse(BaseModel):
+    """Every row of the session's upload."""
     success: bool
     data: List[Dict[str, Any]]
-    total_rows: int
-    filtered_rows: int
-
-
-class ReviewRequest(BaseModel):
-    """Request body for building a per-person access review"""
-    staff_names: List[str] = Field(..., description="Selected staff names to review")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "staff_names": ["Amber Weiss", "Amber WeissTL", "Brian Wishard"]
-            }
-        }
 
 
 class ReviewDocumentRequest(BaseModel):
@@ -110,21 +63,6 @@ class ExportRequest(BaseModel):
                 "audit_date": "2026-07-28"
             }
         }
-
-
-class ExportResponse(BaseModel):
-    """Response after successful export"""
-    success: bool
-    filename: str
-    row_count: int
-    download_url: str
-
-
-class ErrorResponse(BaseModel):
-    """Standard error response"""
-    success: bool = False
-    error: str
-    detail: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------

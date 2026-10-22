@@ -47,9 +47,15 @@ def test_upload_reads_real_file():
           f"breakdown={up['source_breakdown']}")
 
 
+def _staff_names():
+    """Every staff name in the upload, sorted."""
+    rows = client.get("/api/rows").json()["data"]
+    return sorted({r["StaffName"] for r in rows if r["StaffName"]})
+
+
 def _pick_names(up, n=3):
-    """Pick a few real staff names that actually have direct assignments."""
-    return up["unique_values"]["staff_names"][:n]
+    """Pick the first few staff names."""
+    return _staff_names()[:n]
 
 
 def test_audit_tree_is_stable_and_shaped():
@@ -81,7 +87,7 @@ def test_report_counts_and_access_cascade():
     up = _upload()
     # Find a person + direct app that has an "Access" leaf AND siblings,
     # so the cascade has something to cascade onto.
-    names = up["unique_values"]["staff_names"]
+    names = _staff_names()
     tree = client.post("/api/audit-tree", json={"staff_names": names[:50]}).json()["people"]
 
     target = None

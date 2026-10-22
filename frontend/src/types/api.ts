@@ -31,34 +31,15 @@ export interface UploadResponse {
   filename: string
   row_count: number
   rows_dropped: number
-  columns: string[]
-  preview: StaffRow[]
-  unique_values: {
-    staff_names: string[]
-    permissions: string[]
-    domains: string[]
-    positions: string[]
-  }
   /** e.g. { "Position-Based": 4163, "Direct Assignment": 798 } */
   source_breakdown: Record<string, number>
 }
 
-// ── POST /api/filter ───────────────────────────────────────────────────────
-export interface FilterRequest {
-  staff_names?: string[] | null
-  permissions?: string[] | null
-  domains?: string[] | null
-  positions?: string[] | null
-  permission_sources?: string[] | null
-  search_text?: string | null
-}
-
-export interface FilterResponse {
+// ── GET /api/rows ──────────────────────────────────────────────────────────
+export interface RowsResponse {
   success: boolean
-  /** Raw rows; keys are the CSV columns (StaffRow). */
+  /** Every row of the upload; keys are the CSV columns. */
   data: StaffRow[]
-  total_rows: number
-  filtered_rows: number
 }
 
 // ── POST /api/audit-tree ───────────────────────────────────────────────────
@@ -155,15 +136,4 @@ export interface ExportRequest {
   staff_ids: string[]
   department: string
   audit_date?: string | null
-}
-
-// ── Errors ─────────────────────────────────────────────────────────────────
-export interface ValidationError {
-  loc: (string | number)[]
-  msg: string
-  type: string
-}
-
-export interface HTTPValidationError {
-  detail: ValidationError[] | string
 }
