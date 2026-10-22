@@ -14,10 +14,7 @@ both sides can understand — person name, domain, permission name — because t
 two systems assign different permission ids (backend md5 vs prototype
 "L|uid|gi|ai|xi"), so decisions cannot be compared by id.
 
-Usage:
-    # terminal 1
-    cd backend && python -m uvicorn app.main:app
-    # terminal 2
+Usage, with the dev stack running (docker compose up -d):
     python checks/compare_backend_to_prototype.py [path/to/report.csv]
 
 Requires: httpx (already in backend/requirements.txt) and node on PATH.

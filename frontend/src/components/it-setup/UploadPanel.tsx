@@ -1,3 +1,4 @@
+/** Panel 1: upload the export, with the result, errors and recovery notices. */
 import { useAudit, type AuditState } from '../../state/AuditContext'
 import { Panel, PanelHead, Pill } from '../ui'
 
@@ -45,8 +46,7 @@ function UploadPanel() {
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0]
-              // Clear the picker so choosing the same file again still fires
-              // onChange (browsers only fire it when the value changes).
+              // Cleared so picking the same file again still fires onChange.
               e.target.value = ''
               if (f) pick(f)
             }}

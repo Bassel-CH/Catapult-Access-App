@@ -1,3 +1,4 @@
+/** The page: header, step bar, and whichever step is current. */
 import { useAudit } from './state/AuditContext'
 import { Stepper } from './components/Stepper'
 import ItSetup from './components/it-setup/ItSetup'

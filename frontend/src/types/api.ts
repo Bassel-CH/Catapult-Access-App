@@ -1,12 +1,6 @@
 /**
- * API contract types — mirror the FastAPI backend's Pydantic schemas exactly.
- *
- * Source of truth: backend/app/models/schemas.py (as published at /docs).
- * src/services/api.ts parses responses into these.
- *
- * NOTE: the two real PermissionSource values are exactly these strings. The
- * old standalone prototype used "Position: X" / "Direct assignment"; the live
- * backend uses the two below. We match the backend.
+ * The API's request and response shapes, mirroring
+ * backend/app/models/schemas.py. Change both together.
  */
 export type PermissionSource = 'Position-Based' | 'Direct Assignment'
 
@@ -129,8 +123,7 @@ export interface ReviewDocumentRequest {
 
 // ── POST /api/export (returns a CSV file download) ────────────────────────────
 export interface ExportRequest {
-  /** NOTE: export identifies people by StaffId — every OTHER endpoint uses
-   *  StaffName. The UI therefore tracks both for each selected person. */
+  /** By StaffId, unlike every other endpoint, which uses StaffName. */
   staff_ids: string[]
   department: string
   audit_date?: string | null

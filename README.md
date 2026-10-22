@@ -18,8 +18,7 @@ the authoritative counts and report always come from `/api/report`.
 | `prototype/option1-ui.html` | Original single-file prototype. Visual/UX reference and parity target — **do not** copy its data logic. |
 | `Dockerfile`, `deploy/` | Production image: nginx + backend in one container. **Read `deploy/README.md` before deploying.** |
 | `checks/` | Two comparison checks: the backend against the original prototype, and against an independent rewrite of the audit rules. See `checks/README.md`. |
-| `docs/phase-two.md` | What phase one deliberately left out, and where each piece plugs in. |
-| `docs/history/` | Dated records of earlier phases, kept as they were written. |
+| `docs/` | How the app works, why it's built the way it is, Docker, what's left for phase two. Start at `docs/README.md`. |
 
 ## Run
 

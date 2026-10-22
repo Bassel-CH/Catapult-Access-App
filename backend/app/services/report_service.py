@@ -1,18 +1,10 @@
 """
-Service for producing the COMPLETED audit report.
+The completed audit report: applies the Access rule to the manager's decisions,
+counts the results, and renders the read-only HTML report.
 
-Unlike DocumentService (which renders a blank printable form), this takes the
-manager's captured Keep/Revoke decisions and highlights, applies the audit
-rules on the server so the record is authoritative, and renders a read-only
-report showing what was kept, revoked, or left undecided.
-
-Two responsibilities, kept together on purpose:
-  1. summarize(): the numbers (kept / revoked / no-decision) -- the audit fact.
-  2. render(): the human-readable HTML report built from those same facts.
-
-The Access-cascade rule lives here (not just in the UI) so the authoritative
-report is always internally consistent: if an app's "Access" is revoked, the
-rest of that app's permissions are treated as revoked too.
+This is the authoritative version of the Access rule. The frontend's copy
+(lib/cascade.ts) only gives instant feedback, and must agree with this one;
+the checks in checks/ confirm the counts.
 """
 from html import escape
 from datetime import datetime
@@ -26,7 +18,7 @@ class ReportService:
     """Turns an audit tree + decisions into counts and a completed report."""
 
     # ------------------------------------------------------------------
-    # Core logic: effective decisions + counts
+    # Decisions and counts
     # ------------------------------------------------------------------
 
     @staticmethod
@@ -35,19 +27,12 @@ class ReportService:
         decisions: Dict[str, Dict[str, Any]],
     ) -> Dict[str, str]:
         """
-        Resolve the authoritative decision for every permission id.
+        The final decision for every permission id: 'keep', 'revoke' or 'none'.
 
-        Starts from the manager's raw choices, then applies the Access-cascade:
-        within one person + group + app, if "Access" is revoked, every other
-        permission in that app is forced to 'revoke' as well.
-
-        SCOPE (decision "Path A", guarded by checks/compare_backend_to_reference.py): the
-        cascade stays within a single (person, group, app). Revoking a DIRECT
-        grant's Access does NOT revoke access the person also holds to the same
-        app via a POSITION — those are separate groups. This is a deliberate
-        divergence from the original prototype's broader (person, app) sweep.
-
-        Returns id -> 'keep' | 'revoke' | 'none'.
+        The manager's choices, except that a revoked "Access" revokes the rest
+        of its app. Only within the same staff member and group: a direct grant
+        and access through a position stay separate ("Path A" in
+        docs/decisions.md).
         """
         effective: Dict[str, str] = {}
 
@@ -56,7 +41,6 @@ class ReportService:
                 for app in group.get("apps", []):
                     perms = app.get("permissions", [])
 
-                    # Is this app's "Access" permission revoked?
                     access_revoked = any(
                         p["name"].strip().lower() == ACCESS_PERMISSION
                         and (decisions.get(p["id"], {}) or {}).get("decision") == "revoke"
@@ -79,7 +63,7 @@ class ReportService:
         people: List[Dict[str, Any]],
         decisions: Dict[str, Dict[str, Any]],
     ) -> Dict[str, int]:
-        """Headline counts across all permissions, after cascade."""
+        """Kept / revoked / undecided counts, after the Access rule."""
         effective = ReportService._effective_decisions(people, decisions)
         kept = sum(1 for v in effective.values() if v == "keep")
         revoked = sum(1 for v in effective.values() if v == "revoke")
@@ -105,9 +89,7 @@ class ReportService:
         period_label: str,
         manager_name: str,
     ) -> Tuple[str, Dict[str, int]]:
-        """
-        Render the completed report. Returns (html, summary_counts).
-        """
+        """The completed report as (html, counts)."""
         effective = ReportService._effective_decisions(people, decisions)
         summary = ReportService.summarize(people, decisions)
         highlights = highlights or {}
@@ -186,7 +168,6 @@ class ReportService:
                 f'<span class="mut">&middot; not found in report</span></span></summary></details>'
             )
 
-        # per-person tallies (effective)
         p_ids = [
             perm["id"]
             for g in person["groups"]

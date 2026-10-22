@@ -1,20 +1,12 @@
-# docker-compose.prod.yml  —  PROD  (standalone, NOT layered on the base file)
+# Production: one container running nginx and the backend, behind an HTTPS
+# proxy. Use this file on its own:
 #
 #   docker compose -f docker-compose.prod.yml up -d --build
 #
-# Use this file ON ITS OWN. Don't add `-f docker-compose.yml`: the base defines
-# the separate dev backend/frontend services, and they'd start alongside this.
-#
-# One container (built from the root Dockerfile) runs nginx and uvicorn under
-# supervisord. nginx serves the SPA and forwards /api/ to uvicorn inside the
-# container; uvicorn is not published, so 8080 is the only way in. It's bound
-# to the host's loopback, so health checks run on the host itself:
-# http://127.0.0.1:8080/api/health. Users reach the app over HTTPS through the
-# host's nginx (deploy/host-nginx.conf.example).
+# Host requirements are in deploy/README.md.
 
-# Its own project name. Without it, Compose would use the folder name — the same
-# project as the dev stack — and `--remove-orphans` here would delete your dev
-# containers.
+# Without its own name, this would share the dev stack's project and
+# `--remove-orphans` here would delete the dev containers.
 name: audit-prod
 
 services:
@@ -22,25 +14,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    # Tagged with IMAGE_TAG from .env (see .env.example), so a running
-    # container shows which code it came from. Untagged builds are "local".
     image: audit-app:${IMAGE_TAG:-local}
     ports:
-      # Loopback only: the host's nginx (deploy/host-nginx.conf.example) is the
-      # one thing allowed to reach 8080, because the container trusts the
-      # headers it sends. If the front proxy ever runs in a container instead
-      # of on the host, it can't reach the host's 127.0.0.1; put it on the same
-      # compose network and have it use app:8080, rather than widening this.
+      # Loopback only: the container trusts the headers the front proxy sends,
+      # so nothing else may reach 8080. A containerized front proxy should join
+      # this compose network and use app:8080 rather than widening this.
       - "127.0.0.1:8080:8080"
-    # If nginx or uvicorn dies, the container exits (see deploy/supervisord.conf)
-    # and this brings it back. Every restart loses in-memory sessions.
+    # The container exits if nginx or the backend stops; this brings it back.
     restart: unless-stopped
-    # A hard 1 GB limit, matching what deploy/README.md tells hosts to reserve.
-    # Running out then kills something in this container (Docker records it as
-    # OOMKilled) and it restarts, instead of the host picking a victim. Setting
-    # the swap limit to the same value means no swap: swap would write the
-    # app's memory, including permission data, to the host's disk.
+    # Equal limits mean no swap, so the app's memory never reaches the host's
+    # disk. Running out restarts this container rather than the host choosing
+    # what to kill.
     mem_limit: 1g
     memswap_limit: 1g
-    # supervisord gives each program up to 5s to stop; leave room for both.
+    # supervisord gives each process up to 5s to stop.
     stop_grace_period: 15s

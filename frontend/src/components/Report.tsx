@@ -1,7 +1,6 @@
 /**
- * Report step: show the authoritative summary counts from /api/report and
- * let the user open/download the rendered HTML report, or the printable review
- * packet from /api/review-document.
+ * The report step: the backend's counts for the finished audit, and buttons to
+ * open or download the report and open the review packet.
  */
 import { useAudit } from '../state/AuditContext'
 import { api } from '../services/api'
@@ -24,7 +23,6 @@ export default function Report() {
   if (!report) return null
   const s = report.summary
 
-  // guard() gives this the same error / lost-session handling as the main flow.
   const openReviewPacket = () => guard(async () => {
     const html = await api.reviewDocument({
       staff_names: state.selected,

@@ -1,4 +1,4 @@
-/** Browser download / open helpers for the CSV export and HTML documents. */
+/** Saving files and opening HTML in a new tab, for the export, report and packet. */
 
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)

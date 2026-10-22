@@ -1,3 +1,4 @@
+/** The staff list: search, position filter and select-all. Selected staff stay on top. */
 import { useMemo, useState } from 'react'
 import { useAudit } from '../../state/AuditContext'
 import { Button } from '../ui'

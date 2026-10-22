@@ -1,8 +1,6 @@
 /**
- * IT setup step: load the report, define the audit (department + period),
- * then pick the people to review and optionally highlight permissions of
- * interest. Highlights are keyed by the audit-tree permission ids, so they
- * carry straight into the manager screen.
+ * The IT setup step: upload the export, define the audit, pick the staff to
+ * review and highlight permissions, then export or hand off to the manager.
  */
 import { useState } from 'react'
 import { useAudit } from '../../state/AuditContext'
@@ -24,9 +22,7 @@ export default function ItSetup() {
       on ? 'bg-brand-soft border-[#bcd0ff] text-brand-ink' : 'bg-white border-line text-muted hover:border-[#c4cad6]'
     }`
 
-  // Note: /api/export is the one endpoint keyed by StaffId, not StaffName —
-  // hence the staffIds hop. Wrapped in guard() so a failure (or a lost backend
-  // session) surfaces in the banner instead of an unhandled rejection.
+  // The export selects by StaffId, unlike every other endpoint.
   const exportCsv = () => guard(async () => {
     const ids = state.users.filter((u) => state.selected.includes(u.name)).flatMap((u) => u.staffIds)
     const blob = await api.exportCsv({

@@ -1,9 +1,8 @@
 /**
- * Central workflow state for the whole audit (all three phases), exposed via a
- * React context so any component can read state and dispatch actions without
- * prop-drilling. Async actions call the `api` seam and then dispatch; the
- * synchronous business rule (Access-cascade) lives in the reducer via helpers
- * from lib/cascade so it stays deterministic and testable.
+ * The whole audit's state, for all three steps, shared through React context.
+ *
+ * Actions that call the backend go through `api` and then dispatch; the
+ * reducer applies the Access rule with the helpers in lib/cascade.
  */
 import {
   createContext, useCallback, useContext, useMemo, useReducer,
@@ -26,13 +25,9 @@ export interface UserSummary {
 }
 
 /**
- * Work held back when the backend loses its in-memory dataset, so re-uploading
- * the same export restores the audit instead of restarting it.
- *
- * Safe because permission ids are a deterministic fingerprint of the row
- * (name|source|position|domain|permission|occurrence, md5'd on the server):
- * re-uploading the same file regenerates identical ids, and any id that is NOT
- * regenerated is simply absent from the new tree and ignored by /api/report.
+ * Work held back when the backend loses its session, so re-uploading the same
+ * export restores the audit. Safe because the same file always produces the
+ * same permission ids; an id that doesn't come back is just ignored.
  */
 interface Recovery {
   filename: string
@@ -46,11 +41,11 @@ export interface AuditState {
   phase: 1 | 2 | 3
   loading: boolean
   error: string | null
-  /** error is specifically "backend lost the dataset" — recoverable by re-upload */
+  /** The error is a lost session, recoverable by re-uploading. */
   sessionLost: boolean
-  /** decisions parked by a session loss, waiting for the matching re-upload */
+  /** Work parked by a lost session, waiting for the same file. */
   recovery: Recovery | null
-  /** set once when a re-upload restored parked decisions (for the banner) */
+  /** A re-upload just restored parked work (shows the banner). */
   recovered: boolean
   upload: UploadResponse | null
   users: UserSummary[]
@@ -108,7 +103,7 @@ type Action =
   | { type: 'GO_PHASE'; phase: 1 | 2 | 3 }
   | { type: 'RESET' }
 
-/** Selected people as an array of trees (input to the cascade helpers). */
+/** The selected staff's audit trees, for the cascade helpers. */
 function selectedPeople(state: AuditState): AuditPerson[] {
   return state.selected.map((n) => state.treeCache[n]).filter(Boolean)
 }
@@ -120,14 +115,12 @@ function reducer(state: AuditState, action: Action): AuditState {
     case 'LOADING':
       return { ...state, loading: action.value }
     case 'ERROR':
-      // Clear sessionLost so a *later* failure (e.g. re-uploading the wrong
-      // file) isn't mislabelled "session expired". `recovery` survives, so the
-      // parked decisions are still waiting for the right file.
+      // A later failure (say, the wrong file) mustn't read as "session
+      // expired"; `recovery` stays, still waiting for the right file.
       return { ...state, error: action.message, loading: false, sessionLost: false }
     case 'SESSION_LOST':
-      // The backend forgot the dataset (uvicorn restarted). Send the user back
-      // to the IT setup step to re-upload, but park their work and keep the audit
-      // definition so nothing has to be retyped.
+      // Back to IT setup to re-upload, with the work parked and the audit
+      // definition kept, so nothing has to be redone.
       return {
         ...state,
         phase: 1,
@@ -151,9 +144,8 @@ function reducer(state: AuditState, action: Action): AuditState {
         report: null,
       }
     case 'LOADED': {
-      // Restore parked work only if this really is the same export: same
-      // filename AND same surviving row count. Otherwise the prior decisions
-      // belong to a different dataset and must be dropped.
+      // Restore parked work only for the same export (same name and row
+      // count); decisions from a different file must not carry over.
       const r = state.recovery
       const sameFile = r
         && r.filename === action.upload.filename
@@ -168,7 +160,6 @@ function reducer(state: AuditState, action: Action): AuditState {
         sessionLost: false,
         recovery: null,
         recovered: Boolean(sameFile),
-        // A fresh dataset invalidates any prior selection/decisions.
         selected: sameFile ? r!.selected.filter((n) => known.has(n)) : [],
         highlights: sameFile ? r!.highlights : {},
         decisions: sameFile ? r!.decisions : {},
@@ -230,7 +221,7 @@ function reducer(state: AuditState, action: Action): AuditState {
   }
 }
 
-/** Group flat rows into one entry per StaffName. */
+/** One entry per staff member (StaffName), from the raw rows. */
 function deriveUsers(rows: StaffRow[]): UserSummary[] {
   const map = new Map<string, UserSummary & { _ids: Set<string>; _pos: Set<string> }>()
   for (const r of rows) {
@@ -274,9 +265,8 @@ interface AuditContextValue {
   finalize: () => Promise<void>
   reset: () => void
   /**
-   * Run a one-off API call with the same loading/error/session-lost handling as
-   * the built-in actions. Use it for anything that talks to the backend outside
-   * this context (CSV export, review packet) so no call can fail silently.
+   * Run an API call with the same loading, error and lost-session handling as
+   * the actions here. Use it for every backend call made outside this file.
    */
   guard: (fn: () => Promise<void>) => Promise<void>
 }
@@ -287,9 +277,8 @@ export function AuditProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
 
   /**
-   * Single place every API failure lands. A lost backend session is its own
-   * outcome (recoverable, routes to the IT setup step); everything else becomes an error
-   * message — the backend's `detail` when we have one, never a stack trace.
+   * Where every API failure lands: a lost session goes to recovery, anything
+   * else becomes the error message.
    */
   const fail = useCallback((e: unknown) => {
     if (isSessionLost(e)) {
@@ -312,8 +301,8 @@ export function AuditProvider({ children }: { children: ReactNode }) {
 
   const uploadFile = useCallback((file: File) => guard(async () => {
     const upload = await api.upload(file)
-    // Load every row to build the staff list, then fetch the reviewable trees
-    // once so highlighting works in the IT setup step.
+    // Trees for everyone up front, so highlighting works before anyone is
+    // selected.
     const { data } = await api.rows()
     const users = deriveUsers(data)
     const tree = await api.auditTree({ staff_names: users.map((u) => u.name) })
@@ -363,7 +352,7 @@ export function AuditProvider({ children }: { children: ReactNode }) {
     setDecisionNote: (permId, note) => dispatch({ type: 'DECISION_NOTE', permId, note }),
     finalize,
     reset: () => {
-      // "Start a new audit": wipe the server's copy too, not just this tab's.
+      // Forget the server's copy too, not just this tab's.
       void api.endSession()
       dispatch({ type: 'RESET' })
     },

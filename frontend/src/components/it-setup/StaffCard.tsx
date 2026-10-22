@@ -1,3 +1,7 @@
+/**
+ * One staff member in the list. Their highlight tree only renders while the
+ * card is open, so typing doesn't re-render ~190 trees.
+ */
 import { memo, useMemo, useState } from 'react'
 import { useAudit } from '../../state/AuditContext'
 import { collectPermIds } from '../../lib/cascade'

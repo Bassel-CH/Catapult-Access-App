@@ -11,10 +11,8 @@ Runs identical decision scenarios through BOTH:
 over the real JulyPermissions.csv, and asserts the kept/revoked/no-decision
 totals match.
 
-Cascade semantics: "Path A" — an "Access" revocation cascades only within its
-own (person, group, app), NOT across the whole (person, app). This is a
-deliberate, documented divergence from prototype/option1-ui.html's broader
-sweep; see reference_runner.mjs and checks/README.md.
+The Access rule is checked as decided ("Path A" in docs/decisions.md), which
+differs on purpose from the original prototype.
 
 Run from the repo root:  python checks/compare_backend_to_reference.py
 Exit code 0 = parity holds; 1 = mismatch (details printed).
@@ -49,8 +47,6 @@ SCENARIOS = {
 def backend_results() -> dict:
     import asyncio
     svc = UploadedDataset()
-    # process_upload is async; asyncio.run is the modern, warning-free way to
-    # drive one coroutine from a sync script (get_event_loop() is deprecated).
     asyncio.run(svc.process_upload(CSV.read_bytes(), CSV.name))
     names = sorted(svc.current_df["StaffName"].unique().tolist())
     people = svc.build_audit_tree(names)

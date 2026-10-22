@@ -1,13 +1,13 @@
 """
-Pydantic models for request/response validation
-These ensure data coming in and going out is properly formatted
+The shapes of every API request and response. frontend/src/types/api.ts
+mirrors them; change both together.
 """
 from pydantic import BaseModel, Field
 from typing import List, Literal, Optional, Dict, Any
 
 
 class UploadResponse(BaseModel):
-    """Response after successful CSV upload"""
+    """POST /api/upload"""
     success: bool
     session_id: str = Field(
         ..., description="Send back as the X-Session-Id header on every later call"
@@ -33,13 +33,13 @@ class UploadResponse(BaseModel):
 
 
 class RowsResponse(BaseModel):
-    """Every row of the session's upload."""
+    """GET /api/rows: every row of the session's upload."""
     success: bool
     data: List[Dict[str, Any]]
 
 
 class ReviewDocumentRequest(BaseModel):
-    """Request body for generating the printable review document"""
+    """POST /api/review-document"""
     staff_names: List[str] = Field(..., description="Selected staff names")
     audit_label: str = Field("", description="e.g. 'July - Operations'")
     manager_name: str = Field("", description="Manager the packet is for")
@@ -50,7 +50,7 @@ class ReviewDocumentRequest(BaseModel):
 
 
 class ExportRequest(BaseModel):
-    """Request body for exporting filtered data"""
+    """POST /api/export"""
     staff_ids: List[str] = Field(..., description="List of StaffIds to export")
     department: str = Field(..., description="Department name to add to export")
     audit_date: Optional[str] = Field(None, description="Audit date (defaults to today)")
@@ -66,17 +66,13 @@ class ExportRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Audit workflow contract (Phase A)
-#
-# These models are the shared "menu format" between the backend and the
-# React app. The linchpin is `AuditPermission.id`: a stable fingerprint the
-# backend assigns to every single permission, so a manager's Keep/Revoke
-# decision can be pinned to exactly one permission and sent back reliably.
+# The audit tree, decisions and the report. Highlights and decisions are keyed
+# by AuditPermission.id.
 # ---------------------------------------------------------------------------
 
 
 class AuditPermission(BaseModel):
-    """A single reviewable permission, with its stable id."""
+    """One permission, with its stable id."""
     id: str = Field(..., description="Stable fingerprint for this permission")
     name: str
     domain: str
@@ -85,7 +81,7 @@ class AuditPermission(BaseModel):
 
 
 class AuditApp(BaseModel):
-    """A domain/app grouping a set of permissions."""
+    """One app's permissions (the CSV's DomainName)."""
     domain: str
     permissions: List[AuditPermission]
 
@@ -103,7 +99,7 @@ class AuditGroup(BaseModel):
 
 
 class AuditPerson(BaseModel):
-    """One person's full reviewable access tree."""
+    """One staff member's audit tree. found=False if the name isn't in the upload."""
     staff_name: str
     found: bool
     email: str = ""
@@ -114,20 +110,20 @@ class AuditPerson(BaseModel):
 
 
 class AuditTreeRequest(BaseModel):
-    """Request the reviewable access tree for the selected staff."""
+    """POST /api/audit-tree"""
     staff_names: List[str] = Field(..., description="Selected staff names")
 
 
 class AuditTreeResponse(BaseModel):
-    """The reviewable access tree, one entry per selected name."""
+    """One audit tree per requested name, in the same order."""
     success: bool
     people: List[AuditPerson]
 
 
 class AuditDecision(BaseModel):
     """A manager's decision on one permission, keyed by AuditPermission.id."""
-    # Literal: anything other than exactly "keep", "revoke" or null is rejected
-    # with a 422, instead of silently being counted as "No decision".
+    # Anything else is rejected with a 422, rather than silently counted as
+    # "No decision".
     decision: Optional[Literal["keep", "revoke"]] = Field(
         None, description="'keep', 'revoke', or null for undecided"
     )
@@ -135,11 +131,7 @@ class AuditDecision(BaseModel):
 
 
 class GenerateReportRequest(BaseModel):
-    """
-    Everything needed to produce the completed audit report.
-
-    decisions and highlights are keyed by AuditPermission.id.
-    """
+    """POST /api/report. decisions and highlights are keyed by AuditPermission.id."""
     staff_names: List[str] = Field(..., description="Selected staff names")
     department: str = ""
     period_label: str = Field("", description="e.g. 'July 2026'")

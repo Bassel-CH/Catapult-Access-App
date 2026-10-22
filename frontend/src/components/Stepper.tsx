@@ -1,4 +1,4 @@
-/** The 1-2-3 progress chips in the header. */
+/** The step bar in the header: IT setup, Manager audit, Report. */
 import { useAudit } from '../state/AuditContext'
 
 const STEPS = [

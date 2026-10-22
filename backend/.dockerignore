@@ -1,9 +1,5 @@
-# Build context is backend/ — these paths are relative to that.
-#
-# Everything listed here is excluded from the tarball Docker sends to the
-# daemon. Two reasons that matters: speed (.venv is hundreds of MB), and
-# correctness (a host .venv copied into the image would shadow the site-packages
-# pip just installed, and it is built for the host's OS, not Debian slim).
+# For backend/Dockerfile, whose build context is backend/. A host .venv must
+# stay out: it would hide the packages installed in the image.
 
 .venv/
 venv/
@@ -12,16 +8,9 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Leftover runtime folders from older versions — never baked into the image.
-**/exports/
-**/temp_uploads/
-
-# Real permissions data must never enter an image layer. Layers are readable by
-# anyone who can pull the image, and deleting a file in a later layer does not
-# remove it from the earlier one.
+# Real permission data must never enter an image.
 **/*.csv
 
-# Tests are not needed to run the service.
 tests/
 
 .pytest_cache/

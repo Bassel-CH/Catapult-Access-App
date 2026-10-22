@@ -1,10 +1,8 @@
-# Used by the root Dockerfile (combined prod image), whose build context is the
-# whole repo. backend/.dockerignore does NOT apply here — it only covers the
-# dev backend image, whose build context is backend/.
+# For the root Dockerfile, whose build context is the whole repo
+# (backend/.dockerignore doesn't apply here).
 #
-# Allowlist: exclude everything, then let back in only what the image needs.
-# New files in the repo (real CSVs, scratch exports, .env files) stay out by
-# default instead of relying on someone remembering to list them.
+# An allowlist: everything is excluded unless let back in below, so a new file
+# such as a real CSV or an .env can't reach the image by accident.
 
 *
 
@@ -17,7 +15,7 @@
 **/__pycache__
 **/*.pyc
 
-# Real permissions data must never enter the build.
+# Real permission data must never enter the build.
 **/*.csv
 
 frontend/node_modules
@@ -25,5 +23,4 @@ frontend/dist
 frontend/dist-ssr
 frontend/.env
 frontend/.env.*
-!frontend/.env.example
 frontend/*.local

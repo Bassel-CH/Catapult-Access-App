@@ -1,11 +1,8 @@
 """
-Configuration settings for the Catapult Applications Audit backend
+Backend settings.
 """
 
-# No upload or export directories: uploads are parsed in memory and exports
-# are built in memory and sent straight back. Nothing touches the disk.
-
-# Expected CSV columns (7 columns - no PermissionDescription)
+# The columns every upload must have.
 REQUIRED_COLUMNS = [
     'StaffId',
     'StaffName',
@@ -16,7 +13,6 @@ REQUIRED_COLUMNS = [
     'PermissionSource'
 ]
 
-# API Settings
 API_TITLE = "Catapult Applications Audit API"
 API_VERSION = "1.0.0"
 API_DESCRIPTION = """
@@ -25,6 +21,5 @@ export, review the selected staff's access, and produce the completed audit
 report.
 """
 
-# File upload limits
-# The real monthly export is ~0.65 MB; 10 MB leaves ~15x room to grow.
-MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
+# The real monthly export is about 0.65 MB; this leaves room to grow 15-fold.
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB

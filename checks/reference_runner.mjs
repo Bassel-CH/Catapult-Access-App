@@ -1,25 +1,12 @@
 /**
- * Parity runner — REFERENCE side (independent oracle, in Node).
+ * An independent implementation of the audit's counting rules, for
+ * checks/compare_backend_to_reference.py. It imports no backend code, so
+ * agreeing with the backend means both arrived at the same numbers separately.
  *
- * This is an independent implementation of the audit's agreed counting rules,
- * written from the prototype's structure but NOT importing any backend code, so
- * that agreement with backend/app/services proves the two arrived at the same
- * numbers independently.
- *
- * GROUPING is identical to prototype/option1-ui.html: each person's access is
- * split into a Direct-assignment group plus one group per position, then by app
- * (domain), then permission.
- *
- * CASCADE — DELIBERATE DIVERGENCE FROM THE PROTOTYPE (decision: "Path A").
- * The original prototype cascaded an "Access" revocation across a whole
- * (person, app), sweeping in position-inherited access. We chose the narrower,
- * more audit-accurate scope: an "Access" revocation cascades only within its
- * own (person, group, app), so revoking a DIRECT grant never silently revokes
- * access the person still holds through a POSITION. This runner encodes that
- * chosen behavior and is the oracle the backend must match.
- *
- * Fed the same VALID rows the backend keeps (PermissionSource is one of the two
- * real values); the backend's extra junk-row cleanup is verified separately.
+ * Groups access like the prototype (direct grants, then one group per position,
+ * then app), and applies the Access rule as decided ("Path A" in
+ * docs/decisions.md), which differs from the prototype on purpose. Only real
+ * permission rows are counted; junk-row cleanup is tested separately.
  *
  * Usage: node reference_runner.mjs /abs/path/to/JulyPermissions.csv
  */

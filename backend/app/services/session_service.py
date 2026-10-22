@@ -1,20 +1,10 @@
 """
-Per-upload sessions: each upload gets its own private dataset.
+Sessions: one private, in-memory dataset per upload.
 
-Why: the backend used to hold ONE dataset for everyone, so a second user could
-read the first user's staff data, and two audits at once would overwrite each
-other. Now every successful upload creates a session with a random, unguessable
-id; the browser sends that id back on every request (X-Session-Id header) and
-only ever sees its own data.
-
-Lifetime: memory only, never disk. A session ends when the user starts a new
-audit (DELETE /api/session) or after SESSION_IDLE_MINUTES with no requests.
-Expired sessions are swept whenever any session is created or looked up, so no
-background job is needed.
-
-An unknown or expired id is reported exactly like "nothing uploaded yet", which
-the frontend already treats as a recoverable lost session (re-upload the same
-file and the audit's decisions are restored).
+The browser sends its session id on every request (X-Session-Id) and only ever
+reaches its own data. A session ends on DELETE /api/session, on re-upload, or
+after SESSION_IDLE_MINUTES idle. Expired sessions are swept on every create and
+lookup, so there's no background job.
 """
 import secrets
 import threading

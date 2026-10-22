@@ -1,18 +1,12 @@
 /**
- * Selectors + the "Access-cascade" business rule, kept separate from React so
- * they are easy to reason about and unit-test later.
+ * The Access rule and the decision helpers built on it, kept free of React.
  *
- * The rule: within one app (one domain, inside one group), the "Access"
- * permission is the master switch. Revoking Access implies every other
- * permission in that app is revoked too, and those siblings become locked
- * (can't be edited) until Access is set back to Keep.
+ * Within one app, inside one group, revoking "Access" revokes the rest of the
+ * app and locks it until Access is set back. A direct grant and access through
+ * a position are separate groups ("Path A" in docs/decisions.md).
  *
- * SCOPE (decision "Path A"): the cascade is confined to a single
- * (person, group, app) — revoking a DIRECT grant's Access does NOT touch access
- * the person also holds to the same app via a POSITION. This deliberately
- * diverges from the original prototype's broader (person, app) sweep, and must
- * stay consistent with backend report_service.py — checks/compare_backend_to_reference.py
- * guards that both agree.
+ * This copy only gives instant feedback; the backend's report_service.py is
+ * the record, and the two must agree.
  */
 import type { AuditPerson, AuditDecision } from '../types/api'
 
@@ -50,9 +44,8 @@ export function indexTree(people: AuditPerson[]): Map<string, PermIndexEntry> {
 }
 
 /**
- * Apply one Keep/Revoke click, returning a NEW decisions map.
- * Clicking the active choice again clears it (toggle to undecided), matching
- * the prototype. Revoking an app's Access cascades revoke to its siblings.
+ * Apply one Keep/Revoke click and return a new decisions map. Clicking the
+ * active choice again clears it; revoking Access revokes the rest of its app.
  */
 export function applyDecision(
   people: AuditPerson[],
