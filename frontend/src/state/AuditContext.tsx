@@ -312,10 +312,10 @@ export function AuditProvider({ children }: { children: ReactNode }) {
 
   const uploadFile = useCallback((file: File) => guard(async () => {
     const upload = await api.upload(file)
-    // Load the full dataset (filter with no criteria) to build the user list,
-    // then fetch the reviewable trees once so highlighting works in the IT setup step.
-    const filtered = await api.filter({})
-    const users = deriveUsers(filtered.data)
+    // Load every row to build the staff list, then fetch the reviewable trees
+    // once so highlighting works in the IT setup step.
+    const { data } = await api.rows()
+    const users = deriveUsers(data)
     const tree = await api.auditTree({ staff_names: users.map((u) => u.name) })
     const treeCache = Object.fromEntries(tree.people.map((p) => [p.staff_name, p]))
     dispatch({ type: 'LOADED', upload, users, treeCache })

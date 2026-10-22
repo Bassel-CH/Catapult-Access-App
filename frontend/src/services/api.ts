@@ -12,7 +12,7 @@
  * tie the image to one host.
  */
 import type {
-  UploadResponse, FilterRequest, FilterResponse,
+  UploadResponse, RowsResponse,
   AuditTreeRequest, AuditTreeResponse,
   GenerateReportRequest, ReportResponse,
   ReviewDocumentRequest, ExportRequest,
@@ -24,7 +24,7 @@ export { ApiError }
 
 export interface AuditApi {
   upload(file: File): Promise<UploadResponse>
-  filter(req: FilterRequest): Promise<FilterResponse>
+  rows(): Promise<RowsResponse>
   auditTree(req: AuditTreeRequest): Promise<AuditTreeResponse>
   report(req: GenerateReportRequest): Promise<ReportResponse>
   /** Printable HTML packet (backend returns text/html). */
@@ -58,7 +58,7 @@ export function isSessionLost(err: unknown): boolean {
 // ── Mock implementation (Phase B; still available via VITE_USE_MOCKS=true) ──
 const mockApi: AuditApi = {
   upload: mock.upload,
-  filter: mock.filter,
+  rows: mock.rows,
   auditTree: mock.auditTree,
   report: mock.report,
   reviewDocument: mock.reviewDocument,
@@ -115,8 +115,8 @@ const realApi: AuditApi = {
     sessionId = up.session_id
     return up
   },
-  async filter(req) {
-    return asJson<FilterResponse>(await postJson('/api/filter', req))
+  async rows() {
+    return asJson<RowsResponse>(await fetch('/api/rows', { headers: sessionHeaders() }))
   },
   async auditTree(req) {
     return asJson<AuditTreeResponse>(await postJson('/api/audit-tree', req))

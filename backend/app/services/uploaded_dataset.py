@@ -187,63 +187,9 @@ class UploadedDataset:
         counts = df["PermissionSource"].value_counts().to_dict()
         return {str(k): int(v) for k, v in counts.items()}
 
-    def apply_filters(self, filters: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Apply filters to the current dataset
-
-        Args:
-            filters: Dictionary of filter criteria
-
-        Returns:
-            Filtered data and statistics
-
-        Raises:
-            NoDataLoadedError: If no CSV has been uploaded
-            FilterError: If filtering operation fails
-        """
-        if self.current_df is None:
-            raise NoDataLoadedError("No data loaded. Please upload a CSV first.")
-
-        try:
-            df = self.current_df.copy()
-
-            if filters.get("staff_names"):
-                df = df[df["StaffName"].isin(filters["staff_names"])]
-
-            if filters.get("permissions"):
-                df = df[df["PermissionName"].isin(filters["permissions"])]
-
-            if filters.get("domains"):
-                df = df[df["DomainName"].isin(filters["domains"])]
-
-            if filters.get("positions"):
-                df = df[df["PositionName"].isin(filters["positions"])]
-
-            # Filter by permission source (Position-Based vs Direct Assignment)
-            if filters.get("permission_sources"):
-                df = df[df["PermissionSource"].isin(filters["permission_sources"])]
-
-            # Search across all text fields
-            if filters.get("search_text"):
-                search_term = filters["search_text"].lower()
-                mask = df.astype(str).apply(
-                    # regex=False: treat the search as plain text, so "(" or
-                    # "." are matched literally instead of as pattern syntax.
-                    lambda row: row.str.lower().str.contains(
-                        search_term, na=False, regex=False
-                    ).any(),
-                    axis=1,
-                )
-                df = df[mask]
-
-            return {
-                "data": df.to_dict("records"),
-                "total_rows": len(self.current_df),
-                "filtered_rows": len(df),
-            }
-
-        except Exception as e:
-            raise FilterError(f"Error applying filters: {str(e)}")
+    def all_rows(self) -> List[Dict[str, Any]]:
+        """Every row of the upload, one dict per row."""
+        return self.current_df.to_dict("records")
 
     def get_data_by_staff_ids(self, staff_ids: List[str]) -> pd.DataFrame:
         """

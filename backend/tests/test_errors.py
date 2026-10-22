@@ -73,7 +73,7 @@ def test_uncaught_error_is_generic_with_reference_and_logged():
     original = routes.sessions.get
     routes.sessions.get = _boom  # blows up inside the dependency, outside any try
     try:
-        r, records = _with_log_capture(lambda: c.post("/api/filter", json={}))
+        r, records = _with_log_capture(lambda: c.get("/api/rows"))
     finally:
         routes.sessions.get = original
 
@@ -86,7 +86,7 @@ def test_uncaught_error_is_generic_with_reference_and_logged():
 
 def test_expected_errors_keep_their_helpful_message():
     c = TestClient(app)
-    r = c.post("/api/filter", json={})
+    r = c.get("/api/rows")
     assert r.status_code == 400
     assert r.json()["detail"] == "No data loaded. Please upload a CSV first."
 

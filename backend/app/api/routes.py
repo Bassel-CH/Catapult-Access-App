@@ -11,8 +11,7 @@ from fastapi.responses import HTMLResponse, Response
 from ..config import API_TITLE, API_VERSION, MAX_UPLOAD_SIZE
 from ..models.schemas import (
     UploadResponse,
-    FilterRequest,
-    FilterResponse,
+    RowsResponse,
     ReviewDocumentRequest,
     ExportRequest,
     AuditTreeRequest,
@@ -136,32 +135,13 @@ async def upload_csv(
         raise internal_error("Error processing file")
 
 
-@router.post("/filter", response_model=FilterResponse)
-async def apply_filters(
-    filters: FilterRequest,
-    dataset: UploadedDataset = Depends(current_session),
-):
-    """
-    Apply filters to the loaded dataset.
-
-    Filter by staff_names, permissions, domains, positions,
-    permission_sources, and/or search_text.
-    """
+@router.get("/rows", response_model=RowsResponse)
+async def list_rows(dataset: UploadedDataset = Depends(current_session)):
+    """Every row of this session's upload. The app builds its staff list from them."""
     try:
-        filter_dict = filters.model_dump(exclude_none=True)
-        result = dataset.apply_filters(filter_dict)
-
-        return FilterResponse(
-            success=True,
-            data=result["data"],
-            total_rows=result["total_rows"],
-            filtered_rows=result["filtered_rows"],
-        )
-
-    except NoDataLoadedError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return RowsResponse(success=True, data=dataset.all_rows())
     except Exception:
-        raise internal_error("Error applying filters")
+        raise internal_error("Error reading rows")
 
 
 @router.post("/review-document", response_class=HTMLResponse)

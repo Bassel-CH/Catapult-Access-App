@@ -41,36 +41,10 @@ class UploadResponse(BaseModel):
         }
 
 
-class FilterRequest(BaseModel):
-    """Request body for filtering data"""
-    staff_names: Optional[List[str]] = Field(None, description="Filter by staff names")
-    permissions: Optional[List[str]] = Field(None, description="Filter by permission names")
-    domains: Optional[List[str]] = Field(None, description="Filter by domain names")
-    positions: Optional[List[str]] = Field(None, description="Filter by position names")
-    permission_sources: Optional[List[str]] = Field(
-        None,
-        description="Filter by permission source (Position-Based / Direct Assignment)"
-    )
-    search_text: Optional[str] = Field(None, description="Search across all text fields")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "staff_names": ["John Smith", "Jane Doe"],
-                "permissions": ["Access"],
-                "domains": ["Catapult EHR"],
-                "permission_sources": ["Direct Assignment"],
-                "search_text": "scheduler"
-            }
-        }
-
-
-class FilterResponse(BaseModel):
-    """Response after applying filters"""
+class RowsResponse(BaseModel):
+    """Every row of the session's upload."""
     success: bool
     data: List[Dict[str, Any]]
-    total_rows: int
-    filtered_rows: int
 
 
 class ReviewDocumentRequest(BaseModel):

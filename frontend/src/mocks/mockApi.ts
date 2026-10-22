@@ -8,7 +8,7 @@
  * so the wiring later is a like-for-like swap.
  */
 import type {
-  UploadResponse, FilterRequest, FilterResponse,
+  UploadResponse, RowsResponse,
   AuditTreeRequest, AuditTreeResponse, AuditPerson, AuditGroup, AuditApp,
   AuditPermission, GenerateReportRequest, ReportResponse, ReportSummary,
   ReviewDocumentRequest, ExportRequest, StaffRow,
@@ -61,30 +61,10 @@ export async function upload(file: File): Promise<UploadResponse> {
   }
 }
 
-// ── /api/filter ─────────────────────────────────────────────────────────────
-export async function filter(req: FilterRequest): Promise<FilterResponse> {
+// ── /api/rows ───────────────────────────────────────────────────────────────
+export async function rows(): Promise<RowsResponse> {
   await delay(150)
-  let data = dataset.slice()
-  const inSet = (val: string, list?: string[] | null) => !list?.length || list.includes(val)
-
-  data = data.filter((r) =>
-    inSet(r.StaffName, req.staff_names) &&
-    inSet(r.PermissionName, req.permissions) &&
-    inSet(r.DomainName, req.domains) &&
-    inSet(r.PositionName, req.positions) &&
-    inSet(r.PermissionSource, req.permission_sources))
-
-  if (req.search_text) {
-    const q = req.search_text.toLowerCase()
-    data = data.filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(q)))
-  }
-
-  return {
-    success: true,
-    data,
-    total_rows: dataset.length,
-    filtered_rows: data.length,
-  }
+  return { success: true, data: dataset.slice() }
 }
 
 // ── /api/audit-tree ─────────────────────────────────────────────────────────
