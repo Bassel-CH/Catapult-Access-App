@@ -1,12 +1,12 @@
 """
 Compares the backend's audit rules with an independent reference implementation.
 
-Not to be confused with tools/compare_backend_to_prototype.py, which checks the
+Not to be confused with checks/compare_backend_to_prototype.py, which checks the
 live backend against the original prototype instead.
 
 Runs identical decision scenarios through BOTH:
   - an independent reference implementation of the agreed audit rules
-    (parity/reference_runner.mjs, via node), and
+    (checks/reference_runner.mjs, via node), and
   - the real backend (app.services), the same code the React app calls,
 over the real JulyPermissions.csv, and asserts the kept/revoked/no-decision
 totals match.
@@ -14,9 +14,9 @@ totals match.
 Cascade semantics: "Path A" — an "Access" revocation cascades only within its
 own (person, group, app), NOT across the whole (person, app). This is a
 deliberate, documented divergence from prototype/option1-ui.html's broader
-sweep; see reference_runner.mjs and parity/README.md.
+sweep; see reference_runner.mjs and checks/README.md.
 
-Run from the repo root:  python parity/compare_backend_to_reference.py
+Run from the repo root:  python checks/compare_backend_to_reference.py
 Exit code 0 = parity holds; 1 = mismatch (details printed).
 """
 import json
@@ -83,7 +83,7 @@ def backend_results() -> dict:
 
 def reference_results() -> dict:
     proc = subprocess.run(
-        ["node", str(REPO / "parity" / "reference_runner.mjs"), str(CSV)],
+        ["node", str(REPO / "checks" / "reference_runner.mjs"), str(CSV)],
         capture_output=True, text=True,
     )
     if proc.returncode != 0:

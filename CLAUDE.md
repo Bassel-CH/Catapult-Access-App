@@ -16,6 +16,6 @@ you're changing it anyway.
 | **decision** | A manager's Keep or Revoke on one permission, or none yet. | |
 | **session** | One upload's private data, held in memory (`UploadedDataset`) until "Start a new audit" or 60 idle minutes. | |
 
-Known places still using the old words, to change when touched: the IT setup
-screen says "users" for staff ("Select users", "No users match"); the
-review-packet request field `flagged`.
+Known places still using the old words, to change when touched: `state.users`
+(and `UserSummary`) in `frontend/src/state/AuditContext.tsx`, which hold the
+staff list; the review-packet request field `flagged`.

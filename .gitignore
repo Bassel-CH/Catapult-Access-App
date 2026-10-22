@@ -13,13 +13,10 @@ __pycache__/
 !.env.example
 
 # Parity-check scratch files (regenerated on every run; derived from real data)
-tools/.parity-*.json
+checks/.parity-*.json
 
 # Orphaned handles left behind when the repo is edited over a FUSE mount.
 # These are stale byte-for-byte copies of real source files — never commit them.
 .fuse_hidden*
 
-# Runtime dirs. temp_uploads would hold real permissions data if ever written to.
-backend/temp_uploads/
-exports/
 backend/tests/sample_report.html

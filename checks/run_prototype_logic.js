@@ -1,6 +1,6 @@
 /*
  * Runs the original prototype's own logic over a CSV, for
- * tools/compare_backend_to_prototype.py.
+ * checks/compare_backend_to_prototype.py.
  *
  * Lifts `parseCSV` and `groupUser` verbatim out of prototype/option1-ui.html
  * (so we are testing the prototype's real logic, not a re-implementation of
@@ -8,9 +8,9 @@
  * prototype's click-time Access cascade, and counts kept / revoked /
  * no-decision exactly the way its buildReport() does.
  *
- * Driven by tools/compare_backend_to_prototype.py — see that file for usage.
+ * Driven by checks/compare_backend_to_prototype.py — see that file for usage.
  *
- *   node tools/run_prototype_logic.js <csv-path> <recipe.json> <out.json>
+ *   node checks/run_prototype_logic.js <csv-path> <recipe.json> <out.json>
  */
 const fs = require('fs');
 const path = require('path');

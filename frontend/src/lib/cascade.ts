@@ -11,7 +11,7 @@
  * (person, group, app) — revoking a DIRECT grant's Access does NOT touch access
  * the person also holds to the same app via a POSITION. This deliberately
  * diverges from the original prototype's broader (person, app) sweep, and must
- * stay consistent with backend report_service.py — parity/compare_backend_to_reference.py
+ * stay consistent with backend report_service.py — checks/compare_backend_to_reference.py
  * guards that both agree.
  */
 import type { AuditPerson, AuditDecision } from '../types/api'
