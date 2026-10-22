@@ -1,27 +1,7 @@
 """
-Custom exceptions for better error handling
+Errors the app raises on purpose.
 """
 
-class AppError(Exception):
-    """Base for the errors this app raises on purpose."""
-    pass
 
-
-class InvalidCSVError(AppError):
-    """Raised when CSV file is invalid or malformed"""
-    pass
-
-
-class NoDataLoadedError(AppError):
-    """Raised when trying to filter/export without loaded data"""
-    pass
-
-
-class FilterError(AppError):
-    """Raised when filter operation fails"""
-    pass
-
-
-class ExportError(AppError):
-    """Raised when export generation fails"""
-    pass
+class InvalidCSVError(Exception):
+    """The uploaded file can't be used: wrong columns, no rows, unreadable."""

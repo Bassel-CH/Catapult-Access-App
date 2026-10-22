@@ -47,7 +47,8 @@ const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
  * "No data loaded. Please upload a CSV first."
  * That is a recoverable state — the user just needs to re-upload — so it must
  * not surface as a generic error. Matching on the 400 + phrase pair is
- * deliberate: NoDataLoadedError is the only 400 that carries it.
+ * deliberate: the session lookup in backend/app/api/routes.py is the only
+ * thing that sends it.
  */
 export function isSessionLost(err: unknown): boolean {
   return err instanceof ApiError

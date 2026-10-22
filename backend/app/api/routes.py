@@ -25,7 +25,7 @@ from ..services.document_service import DocumentService
 from ..services.export_service import ExportService
 from ..services.report_service import ReportService
 from ..services.session_service import SessionStore
-from ..utils.exceptions import InvalidCSVError, NoDataLoadedError
+from ..utils.exceptions import InvalidCSVError
 
 # Create router
 router = APIRouter(prefix="/api", tags=["audit"])
@@ -164,8 +164,6 @@ async def review_document(
             ),
         )
         return HTMLResponse(content=html)
-    except NoDataLoadedError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception:
         raise internal_error("Error building document")
 
@@ -185,8 +183,6 @@ async def audit_tree(
     try:
         people = dataset.build_audit_tree(request.staff_names)
         return AuditTreeResponse(success=True, people=people)
-    except NoDataLoadedError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception:
         raise internal_error("Error building audit tree")
 
@@ -218,8 +214,6 @@ async def generate_report(
             summary=ReportSummary(**summary),
             html=html,
         )
-    except NoDataLoadedError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception:
         raise internal_error("Error generating report")
 
@@ -258,8 +252,6 @@ async def export_filtered_data(
             }
         )
 
-    except NoDataLoadedError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception:

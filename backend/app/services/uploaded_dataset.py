@@ -12,7 +12,7 @@ import logging
 import secrets
 
 from ..config import REQUIRED_COLUMNS
-from ..utils.exceptions import InvalidCSVError, NoDataLoadedError, FilterError
+from ..utils.exceptions import InvalidCSVError
 
 
 # The only two PermissionSource values that represent real permissions.
@@ -200,13 +200,7 @@ class UploadedDataset:
 
         Returns:
             Filtered dataframe
-
-        Raises:
-            NoDataLoadedError: If no CSV has been uploaded
         """
-        if self.current_df is None:
-            raise NoDataLoadedError("No data loaded. Please upload a CSV first.")
-
         return self.current_df[self.current_df["StaffId"].isin(staff_ids)].copy()
 
     def build_review(self, staff_names: List[str]) -> List[Dict[str, Any]]:
@@ -223,13 +217,7 @@ class UploadedDataset:
 
         Returns a list of profile objects, one per selected name, in the
         same order the names were given.
-
-        Raises:
-            NoDataLoadedError: If no CSV has been uploaded
         """
-        if self.current_df is None:
-            raise NoDataLoadedError("No data loaded. Please upload a CSV first.")
-
         reviews: List[Dict[str, Any]] = []
 
         for name in staff_names:
@@ -363,9 +351,6 @@ class UploadedDataset:
         Grouped by StaffName (matching build_review) so related profiles like
         "Amber Weiss" and "Amber WeissTL" stay separate.
         """
-        if self.current_df is None:
-            raise NoDataLoadedError("No data loaded. Please upload a CSV first.")
-
         people: List[Dict[str, Any]] = []
 
         for name in staff_names:
