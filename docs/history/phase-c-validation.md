@@ -1,5 +1,8 @@
 # Phase C — wiring + real-world validation
 
+*A dated record (summer 2026) of the app as it was then. File paths in
+commands have been updated as files moved; everything else is as written.*
+
 All numbers below came from the **live FastAPI server over real HTTP** (uvicorn
 on loopback, real multipart uploads of `JulyPermissions.csv`), not from the mock
 and not from `TestClient`.

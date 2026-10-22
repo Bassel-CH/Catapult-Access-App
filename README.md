@@ -17,9 +17,9 @@ the authoritative counts and report always come from `/api/report`.
 | `frontend/` | React + TS + Vite + Tailwind v4. Wired to the live backend. |
 | `prototype/option1-ui.html` | Original single-file prototype. Visual/UX reference and parity target — **do not** copy its data logic. |
 | `Dockerfile`, `deploy/` | Production image: nginx + backend in one container. **Read `deploy/README.md` before deploying.** |
-| `docs/phase-two.md` | What phase one deliberately left out, and where each piece plugs in. |
 | `checks/` | Two comparison checks: the backend against the original prototype, and against an independent rewrite of the audit rules. See `checks/README.md`. |
-| `PHASE-C-VALIDATION.md` | Validation results against the real export, plus the local runbook. |
+| `docs/phase-two.md` | What phase one deliberately left out, and where each piece plugs in. |
+| `docs/history/` | Dated records of earlier phases, kept as they were written. |
 
 ## Run
 
@@ -49,7 +49,8 @@ the other. Both need the real `JulyPermissions.csv` and `node`:
 - `python checks/compare_backend_to_reference.py`
 
 See `frontend/README.md` for how the app is wired (the `services/api.ts` seam,
-the dev proxy) and `PHASE-C-VALIDATION.md` for what's been verified.
+the dev proxy) and `docs/history/phase-c-validation.md` for what was verified when
+the frontend was first wired to the backend.
 
 ## Run exactly one backend instance
 
