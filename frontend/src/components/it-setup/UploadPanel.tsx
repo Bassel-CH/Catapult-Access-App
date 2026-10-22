@@ -55,7 +55,7 @@ function UploadPanel() {
         </label>
         <span className="text-muted text-[13px]">
           {state.loading ? 'Loading…'
-            : up ? <><strong>{up.row_count}</strong> rows · <strong>{state.users.length}</strong> users loaded · {up.rows_dropped} junk rows dropped</>
+            : up ? <><strong>{up.row_count}</strong> rows · <strong>{state.users.length}</strong> staff loaded · {up.rows_dropped} junk rows dropped</>
             : 'No data loaded.'}
         </span>
       </div>

@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useAudit } from '../../state/AuditContext'
 import { Button } from '../ui'
-import UserCard from './UserCard'
+import StaffCard from './StaffCard'
 
-function SelectUsersPanel() {
+function SelectStaffPanel() {
   const { state, selectMany, clearSelect } = useAudit()
   const [search, setSearch] = useState('')
   const [posFilter, setPosFilter] = useState('')
@@ -30,7 +30,7 @@ function SelectUsersPanel() {
   return (
     <>
       <p className="text-muted text-[13px] mt-0 mb-3.5">
-        Selected people stay pinned to the top. Expand a user to flag permissions that need a closer look.
+        Selected staff stay pinned to the top. Expand a staff member to highlight permissions that need a closer look.
       </p>    
       <div className="flex gap-2.5 items-center flex-wrap mb-3.5">
         <input className="field-input max-w-70" placeholder="Search name, email, position…"
@@ -43,12 +43,12 @@ function SelectUsersPanel() {
         <Button size="sm" onClick={clearSelect}>Clear</Button>
       </div>
       {state.users.length === 0
-        ? <div className="bg-[#fbfbfd] border border-dashed border-line rounded-lg px-3.5 py-3 text-[13px] text-muted">Load data to see users.</div>
+        ? <div className="bg-[#fbfbfd] border border-dashed border-line rounded-lg px-3.5 py-3 text-[13px] text-muted">Load data to see staff.</div>
         : visible.length === 0
-          ? <div className="bg-[#fbfbfd] border border-dashed border-line rounded-lg px-3.5 py-3 text-[13px] text-muted">No users match.</div>
-          : visible.map((u) => <UserCard key={u.name} name={u.name} />)}
+          ? <div className="bg-[#fbfbfd] border border-dashed border-line rounded-lg px-3.5 py-3 text-[13px] text-muted">No staff match.</div>
+          : visible.map((u) => <StaffCard key={u.name} name={u.name} />)}
     </>
   )
 }
 
-export default SelectUsersPanel
+export default SelectStaffPanel

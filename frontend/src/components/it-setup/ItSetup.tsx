@@ -11,13 +11,13 @@ import { downloadBlob, slug } from '../../lib/download'
 import { Button, Panel, Pill } from '../ui'
 import DefineAuditPanel from './DefineAuditPanel'
 import PermissionSearch from './PermissionSearch'
-import SelectUsersPanel from './SelectUsersPanel'
+import SelectStaffPanel from './SelectStaffPanel'
 import UploadPanel from './UploadPanel'
 
 export default function ItSetup() {
   const { state, periodLabel, startAudit, guard } = useAudit()
   const canLock = state.selected.length > 0 && state.dept.trim().length > 0
-  const [tab, setTab] = useState<'users' | 'search'>('users')
+  const [tab, setTab] = useState<'staff' | 'search'>('staff')
 
   const tabClass = (on: boolean) =>
     `text-[13px] font-semibold rounded-full px-3.5 py-1.5 border ${
@@ -44,15 +44,15 @@ export default function ItSetup() {
       <Panel>
         <div className="flex items-center gap-2.5 flex-wrap mb-3">
           <span className="font-semibold">3 ·</span>
-          <button className={tabClass(tab === 'users')} onClick={() => setTab('users')}>
-            Select users &amp; highlight points of interest
+          <button className={tabClass(tab === 'staff')} onClick={() => setTab('staff')}>
+            Select staff &amp; highlight points of interest
           </button>
           <button className={tabClass(tab === 'search')} onClick={() => setTab('search')}>
             Permission search
           </button>
           <span className="ml-auto"><Pill tone="brand">{state.selected.length} selected</Pill></span>
         </div>
-        {tab === 'users' ? <SelectUsersPanel /> : <PermissionSearch />}
+        {tab === 'staff' ? <SelectStaffPanel /> : <PermissionSearch />}
       </Panel>
       <div className="sticky bottom-0 pt-3.5 mt-2">
         <Panel className="mb-0">

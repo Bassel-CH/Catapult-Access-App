@@ -4,7 +4,7 @@
  *
  * Reads treeCache (already populated at upload) so results carry real
  * permission ids, which is what highlighting is keyed by. Selection writes to
- * the same state.selected the user list reads, so picking someone here shows
+ * the same state.selected the staff list reads, so picking someone here shows
  * up as picked there.
  *
  * Renders bare (no Panel) — ItSetup owns the panel and the tab strip.

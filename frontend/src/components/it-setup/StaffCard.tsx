@@ -4,9 +4,9 @@ import { collectPermIds } from '../../lib/cascade'
 import { Pill } from '../ui'
 import HighlightTree from './HighlightTree'
 
-const UserCard = memo(function UserCard({ name }: { name: string }) {
+const StaffCard = memo(function StaffCard({ name }: { name: string }) {
   const { state, toggleSelect } = useAudit()
-  const user = state.users.find((u) => u.name === name)!
+  const member = state.users.find((u) => u.name === name)!
   const person = state.treeCache[name]
   const selected = state.selected.includes(name)
   const [open, setOpen] = useState(false)
@@ -30,8 +30,8 @@ const UserCard = memo(function UserCard({ name }: { name: string }) {
           onChange={() => toggleSelect(name)}
         />
         <div className="flex-1 min-w-0">
-          <div className="font-semibold">{user.name}</div>
-          <div className="text-xs text-muted">{user.email} · {user.permCount} permissions</div>
+          <div className="font-semibold">{member.name}</div>
+          <div className="text-xs text-muted">{member.email} · {member.permCount} permissions</div>
         </div>
         {hlCount > 0 && <Pill tone="flag">{hlCount} highlighted</Pill>}
       </summary>
@@ -44,4 +44,4 @@ const UserCard = memo(function UserCard({ name }: { name: string }) {
   )
 })
 
-export default UserCard
+export default StaffCard
