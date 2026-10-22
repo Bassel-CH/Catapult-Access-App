@@ -18,8 +18,7 @@ the authoritative counts and report always come from `/api/report`.
 | `prototype/option1-ui.html` | Original single-file prototype. Visual/UX reference and parity target — **do not** copy its data logic. |
 | `Dockerfile`, `deploy/` | Production image: nginx + backend in one container. **Read `deploy/README.md` before deploying.** |
 | `docs/phase-two.md` | What phase one deliberately left out, and where each piece plugs in. |
-| `tools/compare_backend_to_prototype.py` | Same decisions through the live backend and the original prototype; counts must match. |
-| `parity/compare_backend_to_reference.py` | Same decision scenarios through the backend and an independent rewrite of the audit rules; counts must match. |
+| `checks/` | Two comparison checks: the backend against the original prototype, and against an independent rewrite of the audit rules. See `checks/README.md`. |
 | `PHASE-C-VALIDATION.md` | Validation results against the real export, plus the local runbook. |
 
 ## Run
@@ -46,8 +45,8 @@ except `test_audit_workflow`, which needs the real `JulyPermissions.csv`.
 The two comparison checks test different things; passing one says nothing about
 the other. Both need the real `JulyPermissions.csv` and `node`:
 
-- `python tools/compare_backend_to_prototype.py` (backend must be running)
-- `python parity/compare_backend_to_reference.py`
+- `python checks/compare_backend_to_prototype.py` (backend must be running)
+- `python checks/compare_backend_to_reference.py`
 
 See `frontend/README.md` for how the app is wired (the `services/api.ts` seam,
 the dev proxy) and `PHASE-C-VALIDATION.md` for what's been verified.

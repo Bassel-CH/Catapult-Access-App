@@ -104,7 +104,7 @@ absent from the new tree and ignored by `/api/report`.
 
 ## 5. Parity check — PASS, with one finding that matters
 
-Re-runnable: `python tools/compare_backend_to_prototype.py` (new). It lifts `parseCSV` and
+Re-runnable: `python checks/compare_backend_to_prototype.py` (new). It lifts `parseCSV` and
 `groupUser` **verbatim** out of `prototype/option1-ui.html` and runs them in
 Node, so it tests the prototype's real logic rather than a re-implementation of
 it. Both sides get the same recipe stated in canonical terms (person, domain,
@@ -188,7 +188,7 @@ startup).
    banner appears, your selection is back, and Phase 2 still shows your decisions.
    Re-uploading a *different* file must clear them instead.
 5. **Parity, on your data.** With the backend running:
-   `python tools/compare_backend_to_prototype.py` → expect `PARITY: PASS`. Run it against next
+   `python checks/compare_backend_to_prototype.py` → expect `PARITY: PASS`. Run it against next
    month's export too; it warns if the StaffName↔StaffId assumption breaks.
 6. **Production build.** `cd frontend && npm run build` (couldn't run here — see
    §6).
