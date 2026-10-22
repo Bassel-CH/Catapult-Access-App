@@ -1,0 +1,778 @@
+<title>Catapult Applications Audit Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one vertical route down the page; each stop is a station on it, with
+   "why" notes beside the text on wide screens and below it on phones. */
+:root {
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --ink: #1f2430;
+  --muted: #5d6573;
+  --line: #e1e5ec;
+  --brand: #2f5fef;
+  --brand-ink: #1b3aa8;
+  --brand-soft: #eaf0ff;
+  --keep: #127a4b;
+  --keep-soft: #e3f3ea;
+  --revoke: #b3261e;
+  --revoke-soft: #fbeaea;
+  --flag: #b45309;
+  --flag-soft: #fdf1e0;
+  --route: #c9d4f2;
+  --code-bg: #eef1f7;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 2px 6px rgba(16, 24, 40, .06);
+
+  --font-display: "Archivo", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151c; --panel: #1a1f29; --ink: #e7eaf0; --muted: #a2aab8; --line: #2b3240;
+    --brand: #7b9bff; --brand-ink: #b5c6ff; --brand-soft: #1e2a4d;
+    --keep: #4fc58c; --keep-soft: #17352a; --revoke: #f07a70; --revoke-soft: #3d1f1d;
+    --flag: #f0a54a; --flag-soft: #3a2a14; --route: #2e3b63; --code-bg: #222938;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151c; --panel: #1a1f29; --ink: #e7eaf0; --muted: #a2aab8; --line: #2b3240;
+  --brand: #7b9bff; --brand-ink: #b5c6ff; --brand-soft: #1e2a4d;
+  --keep: #4fc58c; --keep-soft: #17352a; --revoke: #f07a70; --revoke-soft: #3d1f1d;
+  --flag: #f0a54a; --flag-soft: #3a2a14; --route: #2e3b63; --code-bg: #222938;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.3);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.55;
+}
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 72px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+p { margin: 0; }
+code, .mono { font-family: var(--font-mono); font-size: .82em; }
+a { color: var(--brand-ink); }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+
+/* ---------- header ---------- */
+.eyebrow {
+  font-family: var(--font-display); font-weight: 700; font-size: 13px;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--brand-ink);
+}
+header { display: grid; gap: 14px; max-width: 70ch; }
+header h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 800; line-height: 1.05; letter-spacing: -.01em; }
+.lede { font-size: 19px; color: var(--muted); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; margin-top: 6px; }
+.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; font-size: 15px; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch .track {
+  width: 42px; height: 24px; border-radius: 999px; background: var(--line);
+  position: relative; transition: background .2s; flex: none;
+}
+.switch .track::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+  border-radius: 50%; background: var(--panel); box-shadow: var(--shadow); transition: transform .2s;
+}
+.switch input:checked + .track { background: var(--brand); }
+.switch input:checked + .track::after { transform: translateX(18px); }
+.switch input:focus-visible + .track { outline: 3px solid var(--brand); outline-offset: 2px; }
+.toolbar .hint { color: var(--muted); font-size: 14px; }
+
+/* ---------- route overview ---------- */
+.overview {
+  margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0;
+}
+.overview a {
+  display: inline-flex; gap: 8px; align-items: center; text-decoration: none; color: var(--ink);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+  padding: 6px 12px 6px 6px; font-size: 14px; font-weight: 600;
+}
+.overview a:hover { border-color: var(--brand); }
+.overview .n {
+  width: 24px; height: 24px; border-radius: 50%; background: var(--brand-soft); color: var(--brand-ink);
+  display: grid; place-items: center; font-family: var(--font-display); font-size: 12px; font-weight: 800;
+}
+
+/* ---------- the route ---------- */
+.route { position: relative; margin-top: 44px; display: grid; gap: 28px; }
+.route::before {
+  content: ""; position: absolute; left: 21px; top: 8px; bottom: 8px; width: 4px;
+  background: var(--route); border-radius: 2px;
+}
+.stop { position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 18px; scroll-margin-top: 20px; }
+.marker {
+  position: relative; z-index: 1; width: 46px; height: 46px; border-radius: 50%;
+  background: var(--brand); color: #fff; display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 800; font-size: 18px;
+  box-shadow: 0 0 0 6px var(--bg);
+}
+.card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
+  padding: 22px 24px; display: grid; gap: 18px; min-width: 0;
+}
+.card-head { display: grid; gap: 6px; }
+.card-head h2 { font-size: 24px; font-weight: 700; }
+.card-head .who { font-size: 14px; color: var(--muted); font-weight: 600; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+.cols > * { min-width: 0; }
+.body { display: grid; gap: 12px; max-width: 64ch; }
+.body ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+
+.why {
+  background: var(--brand-soft); border-radius: 10px; padding: 14px 16px; display: grid; gap: 6px; font-size: 15.5px;
+}
+.why .label, .code .label {
+  font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+}
+.why .label { color: var(--brand-ink); }
+
+.code { border-top: 1px dashed var(--line); padding-top: 14px; display: grid; gap: 8px; }
+.code .label { color: var(--muted); }
+.code ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.code li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 14.5px; }
+.code code { background: var(--code-bg); padding: 2px 7px; border-radius: 6px; overflow-wrap: anywhere; }
+body:not(.show-code) .code { display: none; }
+
+/* ---------- visual pieces inside stops ---------- */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 12px; white-space: nowrap; border-bottom: 1px solid var(--line); }
+th { font-family: var(--font-mono); font-weight: 500; font-size: 12.5px; color: var(--muted); background: var(--code-bg); }
+tr:last-child td { border-bottom: 0; }
+
+.funnel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.funnel div { border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
+.funnel b { font-family: var(--font-display); font-size: 26px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.funnel span { font-size: 13.5px; color: var(--muted); }
+.f-in { background: var(--code-bg); }
+.f-keep { background: var(--keep-soft); }
+.f-keep b { color: var(--keep); }
+.f-drop { background: var(--revoke-soft); }
+.f-drop b { color: var(--revoke); }
+
+.session {
+  border: 2px dashed var(--route); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; font-size: 15px;
+}
+.session .sid { font-family: var(--font-mono); font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+  font-size: 13px; font-weight: 600; background: var(--code-bg); color: var(--ink);
+}
+.pill.keep { background: var(--keep-soft); color: var(--keep); }
+.pill.revoke { background: var(--revoke-soft); color: var(--revoke); }
+.pill.flag { background: var(--flag-soft); color: var(--flag); }
+.pill.brand { background: var(--brand-soft); color: var(--brand-ink); }
+
+.tree { font-size: 15px; display: grid; gap: 4px; }
+.tree .node { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.tree .l1 { font-weight: 700; }
+.tree .l2 { padding-left: 18px; font-weight: 600; }
+.tree .l3 { padding-left: 36px; }
+.tree .l4 { padding-left: 54px; color: var(--muted); }
+.tree .direct { color: var(--flag); }
+.tree .position { color: var(--brand-ink); }
+.tree .id { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); }
+
+.mock-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center;
+  background: var(--flag-soft); border-radius: 10px; padding: 12px 14px; box-shadow: inset 3px 0 0 var(--flag);
+}
+.mock-row .note { grid-column: 1 / -1; font-size: 14px; color: var(--flag); }
+
+/* Access rule demo */
+.demo { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.demo-group { padding: 12px 14px; display: grid; gap: 4px; }
+.demo-group + .demo-group { border-top: 1px solid var(--line); }
+.demo-group h3 { font-size: 14px; font-weight: 700; letter-spacing: .02em; }
+.demo-group h3 small { font-family: var(--font-body); font-weight: 600; color: var(--muted); }
+.perm { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 0; }
+.perm .name { font-weight: 600; }
+.perm .name small { display: block; font-weight: 400; font-size: 13px; color: var(--muted); }
+.perm.locked .name { color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button {
+  font: inherit; font-size: 14px; font-weight: 600; padding: 5px 12px; border: 0; background: var(--panel);
+  color: var(--muted); cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"].k { background: var(--keep); color: #fff; }
+.seg button[aria-pressed="true"].r { background: var(--revoke); color: #fff; }
+.seg button:disabled { cursor: not-allowed; opacity: .55; }
+.lock { font-size: 12.5px; font-weight: 700; color: var(--revoke); }
+.demo-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 14px; background: var(--code-bg); }
+.demo-foot .reset { margin-left: auto; font: inherit; font-size: 14px; font-weight: 600; background: none; border: 0; color: var(--brand-ink); cursor: pointer; text-decoration: underline; }
+
+.counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.counts div { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; }
+.counts b { font-family: var(--font-display); font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.counts span { font-size: 13.5px; color: var(--muted); }
+
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.tile h3 { font-size: 17px; font-weight: 700; }
+.tile p { font-size: 15px; color: var(--muted); }
+
+.leftover { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.leftover div { border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; font-size: 15px; }
+.leftover h3 { font-size: 15px; font-weight: 700; }
+.gone { background: var(--code-bg); }
+.kept { background: var(--keep-soft); }
+
+/* ---------- delivery section ---------- */
+.section { margin-top: 64px; display: grid; gap: 18px; }
+.section > h2 { font-size: 30px; font-weight: 800; }
+.section > p { max-width: 68ch; color: var(--muted); }
+.chain { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; }
+.hop {
+  flex: 1 1 200px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: var(--shadow); padding: 16px 18px; display: grid; gap: 8px; align-content: start; min-width: 0;
+}
+.hop h3 { font-size: 18px; font-weight: 700; }
+.hop p { font-size: 15px; color: var(--muted); }
+.hop.container { border: 2px solid var(--brand); }
+.inner { display: grid; gap: 6px; }
+.inner span { background: var(--brand-soft); color: var(--brand-ink); border-radius: 8px; padding: 6px 10px; font-weight: 600; font-size: 14px; }
+.arrow { flex: 0 0 auto; display: grid; place-items: center; color: var(--muted); font-family: var(--font-display); font-weight: 800; font-size: 22px; }
+.rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rule { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; }
+.rule h3 { font-size: 16px; font-weight: 700; }
+.rule p { font-size: 15px; color: var(--muted); }
+
+.next { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.next div { border: 1px dashed var(--route); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; }
+.next h3 { font-size: 16px; font-weight: 700; }
+.next p { font-size: 15px; color: var(--muted); }
+
+footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+
+@media (max-width: 760px) {
+  body { font-size: 16px; }
+  .cols, .rules, .leftover { grid-template-columns: minmax(0, 1fr); }
+  .tiles, .next { grid-template-columns: minmax(0, 1fr); }
+  .route::before { left: 15px; }
+  .stop { grid-template-columns: 34px minmax(0, 1fr); gap: 12px; }
+  .marker { width: 34px; height: 34px; font-size: 15px; box-shadow: 0 0 0 4px var(--bg); }
+  .card { padding: 18px; }
+  .arrow { width: 100%; transform: rotate(90deg); }
+}
+@media (max-width: 460px) {
+  .funnel, .counts { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; scroll-behavior: auto !important; }
+}
+html { scroll-behavior: smooth; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">How it works</span>
+    <h1>Catapult Applications Audit</h1>
+    <p class="lede">Follow one month's audit from the uploaded permissions export to the finished report. Each stop says what happens, why it works that way, and where the data is at that moment.</p>
+    <div class="toolbar">
+      <label class="switch" for="show-code">
+        <input type="checkbox" id="show-code">
+        <span class="track" aria-hidden="true"></span>
+        Show where each stop lives in the code
+      </label>
+      <span class="hint">For developers. Off, the map reads without any code.</span>
+    </div>
+  </header>
+
+  <ol class="overview" aria-label="Stops on the route">
+    <li><a href="#export"><span class="n">1</span>The export arrives</a></li>
+    <li><a href="#checked"><span class="n">2</span>Checked and cleaned</a></li>
+    <li><a href="#session"><span class="n">3</span>A private session</a></li>
+    <li><a href="#tree"><span class="n">4</span>The audit tree</a></li>
+    <li><a href="#setup"><span class="n">5</span>IT setup</a></li>
+    <li><a href="#review"><span class="n">6</span>Manager audit</a></li>
+    <li><a href="#report"><span class="n">7</span>The report</a></li>
+    <li><a href="#documents"><span class="n">8</span>Documents</a></li>
+    <li><a href="#ends"><span class="n">9</span>The session ends</a></li>
+  </ol>
+
+  <div class="route">
+
+    <!-- 1 -->
+    <section class="stop" id="export" aria-labelledby="h-export">
+      <div class="marker" aria-hidden="true">1</div>
+      <div class="card">
+        <div class="card-head">
+          <span class="who">IT · once a month</span>
+          <h2 id="h-export">The export arrives</h2>
+        </div>
+        <div class="cols">
+          <div class="body">
+            <p>Each month IT downloads the staff permissions export, a CSV file of about 5,000 rows, and uploads it. <strong>Each row is one permission one staff member holds</strong>: which app it belongs to, what it's called, and whether it was given to them directly or comes with their position.</p>
+            <div class="table-wrap" role="region" aria-label="Example rows" tabindex="0">
+              <table>
+                <thead><tr><th>StaffName</th><th>DomainName</th><th>PermissionName</th><th>PositionName</th><th>PermissionSource</th></tr></thead>
+                <tbody>
+                  <tr><td>Jordan Lee</td><td>Catapult EHR</td><td>Access</td><td></td><td>Direct Assignment</td></tr>
+                  <tr><td>Jordan Lee</td><td>Catapult EHR</td><td>Open Charts</td><td></td><td>Direct Assignment</td></tr>
+                  <tr><td>Jordan Lee</td><td>Scheduling</td><td>View Calendar</td><td>Team Lead</td><td>Position-Based</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p style="font-size:14px;color:var(--muted)">Example rows with a made-up name. The real export also has StaffId and StaffEmailAddress.</p>
+          </div>
+          <aside class="why">
+            <span class="label">Why it matters</span>
+            <p>Direct assignments are the ones the manager reviews one by one: someone gave them to this person on purpose. Position-based access comes with the job and is shown for reference.</p>
+          </aside>
+        </div>
+        <div class="code">
+          <span class="label">In the code</span>
+          <ul>
+            <li><code>frontend/src/components/it-setup/UploadPanel.tsx</code> the upload button</li>
+            <li><code>POST /api/upload</code> in <code>backend/app/api/routes.py</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="stop" id="checked" aria-labelledby="h-checked">
+      <div class="marker" aria-hidden="true">2</div>
+      <div class="card">
+        <div class="card-head">
+          <span class="who">The app · in a second</span>
+          <h2 id="h-checked">Checked and cleaned</h2>
+        </div>
+        <div class="cols">
+          <div class="body">
+            <p>Before anything else, the app reads the file and checks it:</p>
+            <ul>
+              <li><strong>It reads the text correctly</strong>, whether the file was saved by Windows or as UTF-8, so names like "Jené" keep their accents.</li>
+              <li><strong>It drops the export's junk rows</strong>: a line of dashes and a "(rows affected)" footer the system adds every month.</li>
+              <li><strong>It refuses files it can't use</strong>: the wrong columns, no real rows, larger than 10 MB, or not a .csv. The message says what's wrong.</li>
+            </ul>
+            <div class="funnel" aria-label="The July export, as uploaded">
+              <div class="f-in"><b>4,963</b><span>rows in the July file</span></div>
+              <div class="f-keep"><b>4,961</b><span>permission rows kept</span></div>
+              <div class="f-drop"><b>2</b><span>junk rows dropped</span></div>
+            </div>
+          </div>
+          <aside class="why">
+            <span class="label">Why</span>
+            <p>An audit over an empty or wrong file would produce a report that says nothing while looking official. Refusing it outright is safer than quietly carrying on.</p>
+          </aside>
+        </div>
+        <div class="code">
+          <span class="label">In the code</span>
+          <ul>
+            <li><code>backend/app/services/uploaded_dataset.py</code> <code>process_upload</code></li>
+            <li><code>backend/tests/test_csv_reading.py</code> the encoding checks</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="stop" id="session" aria-labelledby="h-session">
+      <div class="marker" aria-hidden="true">3</div>
+      <div class="card">
+        <div class="card-head">
+          <span class="who">The app · for this upload only</span>
+          <h2 id="h-session">A private session starts</h2>
+        </div>
+        <div class="cols">
+          <div class="body">
+            <p>The upload gets its own <strong>session</strong>: a long random key, and the file's data held in the server's memory. The browser shows the key with every request, and only ever sees its own data.</p>
+            <div class="session">
+              <span class="sid">session key · kQ3vR8…(43 characters)…xT2</span>
+              <div class="pills">
+                <span class="pill brand">In memory only</span>
+                <span class="pill">Never written to disk</span>
+                <span class="pill">One per upload</span>
+              </div>
+            </div>
+          </div>
+          <aside class="why">
+            <span class="label">Why</span>
+            <p>Two people auditing at the same time can't see or overwrite each other's work. The data holds real staff permissions, so it never touches the server's disk.</p>
+          </aside>
+        </div>
+        <div class="code">
+          <span class="label">In the code</span>
+          <ul>
+            <li><code>backend/app/services/session_service.py</code></li>
+            <li><code>current_session</code> in <code>backend/app/api/routes.py</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="stop" id="tree" aria-labelledby="h-tree">
+      <div class="marker" aria-hidden="true">4</div>
+      <div class="card">
+        <div class="card-head">
+          <span class="who">The app · for every staff member</span>
+          <h2 id="h-tree">The audit tree</h2>
+        </div>
+        <div class="cols">
+          <div class="body">
+            <p>Each staff member's rows are arranged into a tree: <strong>where the access comes from</strong>, then <strong>which app</strong>, then <strong>each permission</strong>.</p>
+            <div class="tree" aria-label="Example audit tree">
+              <div class="node l1">Jordan Lee</div>
+              <div class="node l2 direct">Direct assignment</div>
+              <div class="node l3">Catapult EHR</div>
+              <div class="node l4">Access <span class="id">3f9a1c07b2e4</span></div>
+              <div class="node l4">Open Charts <span class="id">8d20e6a1c94f</span></div>
+              <div class="node l2 position">Position: Team Lead</div>
+              <div class="node l3">Scheduling</div>
+              <div class="node l4">View Calendar <span class="id">b71e0d53a6c2</span></div>
+            </div>
+            <p>Every permission gets an <strong>ID</strong>, a fingerprint worked out from the row itself. Highlights and decisions are all recorded against these IDs.</p>
+          </div>
+          <aside class="why">
+            <span class="label">Why fingerprints</span>
+            <p>The same file always produces the same IDs. If the server restarts mid-audit, uploading the same file again brings back every selection and decision still open in the browser.</p>
+          </aside>
+        </div>
+        <div class="code">
+          <span class="label">In the code</span>
+          <ul>
+            <li><code>build_audit_tree</code> and <code>_leaf_id</code> in <code>backend/app/services/uploaded_dataset.py</code></li>
+            <li><code>POST /api/audit-tree</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="stop" id="setup" aria-labelledby="h-setup">
+      <div class="marker" aria-hidden="true">5</div>
+      <div class="card">
+        <div class="card-head">
+          <span class="who">IT · step 1 on screen</span>
+          <h2 id="h-setup">IT setup</h2>
+        </div>
+        <div class="cols">
+          <div class="body">
+            <p>IT names the department and month, then picks the staff to review. They can search by name, filter by position, or search for a permission to find everyone who holds it.</p>
+            <p>Anything the manager should look at closely gets a <strong>highlight</strong>, with an optional note:</p>
+            <div class="mock-row">
+              <div><strong>Open Charts</strong><br><span style="font-size:14px;color:var(--muted)">Catapult EHR · Direct Assignment</span></div>
+              <span class="pill flag">★ Highlighted</span>
+              <span class="note">IT: Granted for a temporary project; confirm it's still needed.</span>
+            </div>
+          </div>
+          <aside class="why">
+            <span class="label">Where highlights go</span>
+            <p>A highlight follows the permission through the manager's review, the report and the printable packet, because it's attached to the permission's ID.</p>
+          </aside>
+        </div>
+        <div class="code">
+          <span class="label">In the code</span>
+          <ul>
+            <li><code>frontend/src/components/it-setup/</code> one file per part of this step</li>
+            <li><code>HighlightTree.tsx</code>, <code>PermissionSearch.tsx</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section class="stop" id="review" aria-labelledby="h-review">
+      <div class="marker" aria-hidden="true">6</div>
+      <div class="card">
+        <div class="card-head">
+          <span class="who">Manager · step 2 on screen</span>
+          <h2 id="h-review">Manager audit</h2>
+        </div>
+        <div class="cols">
+          <div class="body">
+            <p>The manager marks each permission <strong>Keep</strong> or <strong>Revoke</strong>. One rule applies automatically: <strong>revoking an app's "Access" revokes the rest of that app</strong> and locks it, because without access the other permissions mean nothing.</p>
+            <p>Try it. Revoke "Access" below:</p>
+            <div class="demo" id="demo">
+              <div class="demo-group" data-group="direct">
+                <h3>Catapult EHR <small>· Direct assignment</small></h3>
+                <div class="perm" data-perm="access"><span class="name">Access</span><span class="seg"></span></div>
+                <div class="perm" data-perm="charts"><span class="name">Open Charts</span><span class="seg"></span></div>
+                <div class="perm" data-perm="orders"><span class="name">Edit Orders</span><span class="seg"></span></div>
+              </div>
+              <div class="demo-group" data-group="position">
+                <h3>Catapult EHR <small>· Position: Team Lead</small></h3>
+                <div class="perm" data-perm="p-access"><span class="name">Access</span><span class="seg"></span></div>
+                <div class="perm" data-perm="p-print"><span class="name">Print Labels</span><span class="seg"></span></div>
+              </div>
+              <div class="demo-foot" aria-live="polite">
+                <span class="pill keep" id="c-keep">0 keep</span>
+                <span class="pill revoke" id="c-revoke">0 revoke</span>
+                <span class="pill" id="c-none">5 undecided</span>
+                <button type="button" class="reset" id="reset">Reset</button>
+              </div>
+            </div>
+          </div>
+          <aside class="why">
+            <span class="label">Within one group only</span>
+            <p>Revoking the direct grant leaves the Team Lead group alone. Access that comes with a position is removed a different way, so the rule never marks it as gone while the person still has it through their job.</p>
+          </aside>
+        </div>
+        <div class="code">
+          <span class="label">In the code</span>
+          <ul>
+            <li><code>frontend/src/lib/cascade.ts</code> the rule on screen, for instant feedback</li>
+            <li><code>frontend/src/components/ManagerAudit.tsx</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section class="stop" id="report" aria-labelledby="h-report">
+      <div class="marker" aria-hidden="true">7</div>
+      <div class="card">
+        <div class="card-head">
+          <span class="who">The app · when the manager clicks Finalize</span>
+          <h2 id="h-report">The report</h2>
+        </div>
+        <div class="cols">
+          <div class="body">
+            <p>Finalize sends every decision to the server. The server applies the Access rule again itself, then counts and writes the completed report: every staff member's access with each decision, highlight and note.</p>
+            <div class="counts" aria-label="Example report counts">
+              <div><b style="color:var(--keep)">53</b><span>Kept</span></div>
+              <div><b style="color:var(--revoke)">176</b><span>Revoked</span></div>
+              <div><b style="color:var(--muted)">221</b><span>No decision</span></div>
+            </div>
+          </div>
+          <aside class="why">
+            <span class="label">The server is the record</span>
+            <p>The screen's copy of the rule only makes clicks feel instant. The report's numbers always come from the server, and two separate checks confirm it counts the way it should.</p>
+          </aside>
+        </div>
+        <div class="code">
+          <span class="label">In the code</span>
+          <ul>
+            <li><code>backend/app/services/report_service.py</code></li>
+            <li><code>checks/</code> the two comparison checks</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8 -->
+    <section class="stop" id="documents" aria-labelledby="h-documents">
+      <div class="marker" aria-hidden="true">8</div>
+      <div class="card">
+        <div class="card-head">
+          <span class="who">Step 3 on screen</span>
+          <h2 id="h-documents">What comes out</h2>
+        </div>
+        <div class="tiles">
+          <div class="tile">
+            <h3>The report</h3>
+            <p>Read-only, opens in the browser and can be downloaded. The record of the audit.</p>
+          </div>
+          <div class="tile">
+            <h3>Review packet</h3>
+            <p>A printable page per staff member, with Keep and Revoke boxes and highlights marked.</p>
+          </div>
+          <div class="tile">
+            <h3>CSV export</h3>
+            <p>The selected staff's rows, with department and date added. Cells can't run as spreadsheet formulas.</p>
+          </div>
+        </div>
+        <div class="code">
+          <span class="label">In the code</span>
+          <ul>
+            <li><code>report_service.py</code>, <code>document_service.py</code>, <code>export_service.py</code> in <code>backend/app/services/</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9 -->
+    <section class="stop" id="ends" aria-labelledby="h-ends">
+      <div class="marker" aria-hidden="true">9</div>
+      <div class="card">
+        <div class="card-head">
+          <span class="who">Automatically</span>
+          <h2 id="h-ends">The session ends</h2>
+        </div>
+        <div class="body">
+          <p>A session ends when the user clicks <strong>Start a new audit</strong>, uploads another file, or leaves it idle for <strong>60 minutes</strong>. Then the server forgets it.</p>
+        </div>
+        <div class="leftover">
+          <div class="gone">
+            <h3>Left on the server</h3>
+            <p>Nothing. No file, no database, no copy of the upload.</p>
+          </div>
+          <div class="kept">
+            <h3>Kept by the people involved</h3>
+            <p>Whatever they downloaded: the report, the packet, the export.</p>
+          </div>
+        </div>
+        <div class="code">
+          <span class="label">In the code</span>
+          <ul>
+            <li><code>DELETE /api/session</code>, and the idle sweep in <code>session_service.py</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="section" aria-labelledby="h-delivery">
+    <span class="eyebrow">Around the app</span>
+    <h2 id="h-delivery">How it reaches people</h2>
+    <p>The whole app ships as one container. A secure front door sits in front of it, and everything a user does passes through that door.</p>
+    <div class="chain">
+      <div class="hop">
+        <h3>Browser</h3>
+        <p>IT and managers use the app in a normal web browser.</p>
+      </div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="hop">
+        <h3>Secure front door</h3>
+        <p>Encrypts the connection (HTTPS). On AWS this is a load balancer; on a virtual machine, nginx on that machine. Sign-in will live here.</p>
+      </div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="hop container">
+        <h3>The container</h3>
+        <div class="inner">
+          <span>Web server: the pages</span>
+          <span>Backend: sessions, tree, report</span>
+        </div>
+      </div>
+    </div>
+    <div class="rules">
+      <div class="rule">
+        <h3>Only the front door can reach it</h3>
+        <p>The container trusts what the front door tells it, so nothing else may connect to it.</p>
+      </div>
+      <div class="rule">
+        <h3>Exactly one copy</h3>
+        <p>Sessions live in one container's memory. A second copy couldn't see them.</p>
+      </div>
+      <div class="rule">
+        <h3>1 GB of memory, no swap</h3>
+        <p>Uploads stay in memory. Swap would write them to disk.</p>
+      </div>
+      <div class="rule">
+        <h3>A restart ends every session</h3>
+        <p>Users re-upload the same file, and their open audit comes back.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="h-next">
+    <span class="eyebrow">Still to come</span>
+    <h2 id="h-next">Phase two</h2>
+    <div class="next">
+      <div>
+        <h3>Sign-in</h3>
+        <p>There is no login yet, so the app must only be reachable from a restricted network.</p>
+      </div>
+      <div>
+        <h3>A record of finalized audits</h3>
+        <p>Who generated each report, and when, without keeping any staff data.</p>
+      </div>
+      <div>
+        <h3>The hosting choice</h3>
+        <p>AWS or an on-site virtual machine. The container works the same on either.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Catapult Applications Audit v1.0.0</span>
+    <span>October 2026</span>
+    <span>Names and figures on this page are examples.</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  // Code locations toggle, remembered per viewer where storage is allowed.
+  var box = document.getElementById('show-code');
+  function apply(on) { document.body.classList.toggle('show-code', on); box.checked = on; }
+  try { apply(localStorage.getItem('show-code') === '1'); } catch (e) { apply(false); }
+  box.addEventListener('change', function () {
+    apply(box.checked);
+    try { localStorage.setItem('show-code', box.checked ? '1' : '0'); } catch (e) {}
+  });
+
+  // The Access rule, scoped to one group, as the app applies it.
+  var state = {};
+  var groups = Array.prototype.slice.call(document.querySelectorAll('#demo .demo-group'));
+  function permsOf(group) { return Array.prototype.slice.call(group.querySelectorAll('.perm')); }
+  function isAccess(el) { return el.querySelector('.name').firstChild.textContent.trim() === 'Access'; }
+
+  groups.forEach(function (group) {
+    permsOf(group).forEach(function (el) {
+      var id = el.dataset.perm;
+      ['Keep', 'Revoke'].forEach(function (label) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = label;
+        b.className = label === 'Keep' ? 'k' : 'r';
+        b.setAttribute('aria-pressed', 'false');
+        b.setAttribute('aria-label', label + ' ' + el.querySelector('.name').textContent.trim() + ' (' + group.querySelector('h3 small').textContent.replace('·', '').trim() + ')');
+        b.addEventListener('click', function () { decide(group, el, label.toLowerCase()); });
+        el.querySelector('.seg').appendChild(b);
+      });
+      state[id] = null;
+    });
+  });
+
+  function decide(group, el, value) {
+    var id = el.dataset.perm;
+    var next = state[id] === value ? null : value;
+    state[id] = next;
+    if (isAccess(el) && next === 'revoke') {
+      permsOf(group).forEach(function (p) { state[p.dataset.perm] = 'revoke'; });
+    }
+    render();
+  }
+
+  function render() {
+    var keep = 0, revoke = 0, none = 0;
+    groups.forEach(function (group) {
+      var accessEl = permsOf(group).filter(isAccess)[0];
+      var locked = accessEl && state[accessEl.dataset.perm] === 'revoke';
+      permsOf(group).forEach(function (el) {
+        var v = state[el.dataset.perm];
+        if (v === 'keep') keep++; else if (v === 'revoke') revoke++; else none++;
+        var isLocked = locked && !isAccess(el);
+        el.classList.toggle('locked', isLocked);
+        var name = el.querySelector('.name');
+        var tag = name.querySelector('.lock');
+        if (isLocked && !tag) { tag = document.createElement('small'); tag.className = 'lock'; tag.textContent = 'Locked: revoked with Access'; name.appendChild(tag); }
+        if (!isLocked && tag) tag.remove();
+        el.querySelectorAll('.seg button').forEach(function (b) {
+          b.setAttribute('aria-pressed', String(v === b.textContent.toLowerCase()));
+          b.disabled = isLocked;
+        });
+      });
+    });
+    document.getElementById('c-keep').textContent = keep + ' keep';
+    document.getElementById('c-revoke').textContent = revoke + ' revoke';
+    document.getElementById('c-none').textContent = none + ' undecided';
+  }
+
+  document.getElementById('reset').addEventListener('click', function () {
+    Object.keys(state).forEach(function (k) { state[k] = null; });
+    render();
+  });
+  render();
+})();
+</script>
