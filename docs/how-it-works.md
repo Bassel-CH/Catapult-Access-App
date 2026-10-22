@@ -3,6 +3,9 @@
 The Catapult Applications Audit, end to end, in the order a real audit happens.
 Each section ends with where that part lives in the code.
 
+The same journey as a visual map: [visual-map.html](visual-map.html), opened in
+a browser.
+
 ## The three steps
 
 1. **IT setup.** IT uploads the monthly permissions export, names the
