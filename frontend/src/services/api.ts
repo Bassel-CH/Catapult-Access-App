@@ -1,10 +1,7 @@
 /**
  * The single seam between the UI and the backend.
  *
- * Every component and the store call `api.*` — never fetch or the mock
- * directly. Phase C runs on the real backend (VITE_USE_MOCKS=false in
- * .env.local); flipping that flag back to "true" swaps in the mock with no
- * other change.
+ * Every component and the store call `api.*`, never fetch directly.
  *
  * Every call is a relative "/api/..." path, so the browser always talks to
  * the address the page came from: the Vite dev proxy in dev, nginx in prod.
@@ -17,7 +14,6 @@ import type {
   GenerateReportRequest, ReportResponse,
   ReviewDocumentRequest, ExportRequest,
 } from '../types/api'
-import * as mock from '../mocks/mockApi'
 import { ApiError, errorDetail } from '../lib/apiErrors'
 
 export { ApiError }
@@ -34,10 +30,6 @@ export interface AuditApi {
   /** Tell the backend to forget this upload's data now. Never throws. */
   endSession(): Promise<void>
 }
-
-// Mocks only when explicitly "true". A missing or mistyped value means the
-// real backend — a build must never quietly ship fake data.
-const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 
 /**
  * True when the backend has no dataset in memory for this tab.
@@ -56,18 +48,6 @@ export function isSessionLost(err: unknown): boolean {
     && /no data loaded/i.test(err.detail)
 }
 
-// ── Mock implementation (Phase B; still available via VITE_USE_MOCKS=true) ──
-const mockApi: AuditApi = {
-  upload: mock.upload,
-  rows: mock.rows,
-  auditTree: mock.auditTree,
-  report: mock.report,
-  reviewDocument: mock.reviewDocument,
-  exportCsv: mock.exportCsv,
-  endSession: async () => {},
-}
-
-// ── Real implementation ─────────────────────────────────────────────────────
 
 /**
  * This tab's backend session. Each upload gets a private dataset on the server
@@ -102,7 +82,7 @@ function postJson(path: string, body: unknown): Promise<Response> {
   })
 }
 
-const realApi: AuditApi = {
+export const api: AuditApi = {
   async upload(file) {
     // Raw multipart bytes: the file is cp1252 and the backend decodes it.
     // Never read/re-encode it client-side.
@@ -143,6 +123,3 @@ const realApi: AuditApi = {
     } catch { /* ignore */ }
   },
 }
-
-export const api: AuditApi = USE_MOCKS ? mockApi : realApi
-export const usingMocks = USE_MOCKS

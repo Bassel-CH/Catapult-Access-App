@@ -50,7 +50,7 @@ the other. Both need the real `JulyPermissions.csv` and `node`:
 - `python parity/compare_backend_to_reference.py`
 
 See `frontend/README.md` for how the app is wired (the `services/api.ts` seam,
-the dev proxy, mock mode) and `PHASE-C-VALIDATION.md` for what's been verified.
+the dev proxy) and `PHASE-C-VALIDATION.md` for what's been verified.
 
 ## Run exactly one backend instance
 

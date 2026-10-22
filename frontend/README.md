@@ -1,49 +1,36 @@
 # Catapult Applications Audit — Frontend
 
-React + TypeScript + Vite + Tailwind v4. Three-phase audit UI (IT setup →
-manager audit → report), **wired to the live FastAPI backend** as of Phase C.
+React + TypeScript + Vite + Tailwind v4. Three steps: IT setup, manager
+audit, report. It always talks to the real backend.
 
 ## Run
 
-The backend must be running first — the app has no local data source in live mode.
+From the repo root, `docker compose up -d` starts the backend and this app's
+Vite dev server together (see the root README). Open http://localhost:5173.
 
-```bash
-# terminal 1
-cd backend && python -m uvicorn app.main:app --reload   # http://localhost:8000
-
-# terminal 2
-cd frontend
-npm install
-npm run dev        # http://localhost:5173
-```
-
-`npm run build` type-checks (`tsc -b`) and produces a production build in `dist/`.
-
-To go back to mock data (no backend needed), set `VITE_USE_MOCKS=true` in
-`frontend/.env.local` and restart the dev server.
+`npm run build` type-checks (`tsc -b`) and produces a production build in
+`dist/`; the production image runs that build inside the root `Dockerfile`.
 
 ## How it's wired
 
-The whole app talks to one seam: **`src/services/api.ts`**, which resolves to
-either the real fetch client or the in-browser mock (`src/mocks/`) based on
-`VITE_USE_MOCKS`. Live calls are relative `/api/...` paths: the Vite dev proxy
-forwards them to the backend in dev, nginx does in prod.
+Everything that talks to the backend goes through **`src/services/api.ts`**.
+Calls are relative `/api/...` paths: the Vite dev proxy forwards them to the
+backend in dev, nginx does in prod.
 
 ```
 src/
-  types/api.ts          exact mirror of the FastAPI Pydantic schemas
-  services/api.ts        the seam: mock now, real fetch client ready for later
-  mocks/
-    fixtures.ts          deterministic synthetic dataset (14 staff)
-    mockApi.ts           upload / filter / audit-tree / report / review-document / export
-  state/AuditContext.tsx workflow state (phase, selection, highlights, decisions)
+  types/api.ts            mirror of the FastAPI Pydantic schemas
+  services/api.ts         the one place that calls the backend
+  state/AuditContext.tsx  workflow state (step, selection, highlights, decisions)
   lib/
-    cascade.ts           selectors + the Access-cascade business rule
-    format.ts, download.ts
+    cascade.ts            the Access-cascade business rule
+    apiErrors.ts          turning a failed response into a message
+    download.ts           saving and opening files
+    format.ts             month names
   components/
-    ItSetup.tsx          upload, define audit, select users + highlight
-    ManagerAudit.tsx     Keep/Revoke tree, bulk actions, cascade lock, rollups
-    Report.tsx           report summary + open/download HTML
+    ItSetup.tsx           upload, define audit, select staff, highlight
+    ManagerAudit.tsx      Keep/Revoke tree, bulk actions, cascade lock, rollups
+    Report.tsx            report summary, open/download the report and packet
 ```
 
 ## Networking (Phase C)
@@ -71,14 +58,5 @@ src/
 
 - `PermissionSource` uses the backend's exact values `"Position-Based"` /
   `"Direct Assignment"` (the old standalone prototype used different strings).
-- The mock's permission `id`s are stable within a session but are **not** the
-  same hash the backend produces (djb2 vs md5). Decisions/highlights map
-  correctly regardless, since both phases read the same tree. In live mode the
-  frontend never *generates* an id — it only echoes back what `/api/audit-tree`
-  gave it.
-- **Never compare counts against the mock.** The mock has its own report
-  renderer that can drift from `report_service.py`. Truth is the backend.
-- The "Load sample data" button is mock-only: it posts a zero-byte file, which
-  the real backend correctly rejects. It's hidden when `VITE_USE_MOCKS=false`.
-- `/api/review` (untyped in the docs) is superseded by the fully-typed
-  `/api/audit-tree`, so the UI uses audit-tree and skips `/review`.
+- The frontend never generates permission ids; it only echoes back what
+  `/api/audit-tree` gave it.
