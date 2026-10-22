@@ -8,6 +8,8 @@ from typing import Optional, Tuple
 
 from ..utils.exceptions import ExportError
 
+FORMULA_STARTS = ("=", "+", "-", "@", "\t", "\r")
+
 
 class ExportService:
     """Handles export generation with department assignments"""
@@ -39,6 +41,14 @@ class ExportService:
             export_df = df.copy()
             export_df['Department'] = department
             export_df['AuditDate'] = audit_date or datetime.now().strftime('%Y-%m-%d')
+
+            # Excel runs a cell that starts with = + - @ (or a tab or carriage
+            # return) as a formula when the file is opened. Values come from the
+            # source system and the department box, so prefix those with ' to
+            # make Excel show them as plain text.
+            export_df = export_df.map(
+                lambda v: "'" + v if isinstance(v, str) and v.startswith(FORMULA_STARTS) else v
+            )
 
             # Filename goes into an HTTP header, so allow only safe characters.
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')

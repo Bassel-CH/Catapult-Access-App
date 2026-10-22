@@ -17,21 +17,28 @@ the authoritative counts and report always come from `/api/report`.
 | `frontend/` | React + TS + Vite + Tailwind v4. Wired to the live backend. |
 | `prototype/option1-ui.html` | Original single-file prototype. Visual/UX reference and parity target — **do not** copy its data logic. |
 | `Dockerfile`, `deploy/` | Production image: nginx + backend in one container. **Read `deploy/README.md` before deploying.** |
+| `docs/phase-two.md` | What phase one deliberately left out, and where each piece plugs in. |
 | `tools/compare_backend_to_prototype.py` | Same decisions through the live backend and the original prototype; counts must match. |
 | `parity/compare_backend_to_reference.py` | Same decision scenarios through the backend and an independent rewrite of the audit rules; counts must match. |
 | `PHASE-C-VALIDATION.md` | Validation results against the real export, plus the local runbook. |
 
 ## Run
 
-```bash
-# terminal 1
-cd backend && pip install -r requirements.txt
-ENABLE_API_DOCS=true python -m uvicorn app.main:app --reload   # http://localhost:8000  (docs at /docs)
+**Development**, from the repo root. Edits to the code take effect live.
 
-# terminal 2
-cd frontend && npm install
-npm run dev                                    # http://localhost:5173
+```bash
+docker compose up -d      # app: http://localhost:5173   API docs: http://localhost:8000/docs
+docker compose down       # stop
 ```
+
+**Production** is a single container behind an HTTPS proxy. See
+`deploy/README.md`.
+
+## Check
+
+These run on your machine, not in Docker, with the backend's packages
+installed (`pip install -r backend/requirements.txt`, ideally in a virtual
+environment).
 
 Backend tests: each file in `backend/tests/` runs on its own, e.g.
 `cd backend && python -m tests.test_sessions`. All use small made-up data

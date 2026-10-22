@@ -11,8 +11,9 @@ from app.main import app
 
 client = TestClient(app)
 
+HEADER_ROW = "StaffId,StaffName,StaffEmailAddress,DomainName,PermissionName,PositionName,PermissionSource\n"
 CSV = (
-    "StaffId,StaffName,StaffEmailAddress,DomainName,PermissionName,PositionName,PermissionSource\n"
+    HEADER_ROW +
     "1,Amber Weiss,a@x.com,EHR,Access,,Direct Assignment\n"
     "2,Brian Wishard,b@x.com,EHR,Access,,Direct Assignment\n"
 )
@@ -42,6 +43,22 @@ def test_export_returns_csv_for_selected_ids_only():
     assert lines[1].endswith(',"Patient ""Support""/Ops - July 2026",2026-07-28')
 
 
+def test_export_cells_cannot_run_as_spreadsheet_formulas():
+    # A value from the source system, and one typed into the department box.
+    risky = HEADER_ROW + '3,Cara Lane,c@x.com,EHR,"=HYPERLINK(""http://x"")",,Direct Assignment\n'
+    r = client.post(
+        "/api/upload",
+        files={"file": ("synthetic.csv", io.BytesIO(risky.encode("cp1252")), "text/csv")},
+    )
+    client.headers["X-Session-Id"] = r.json()["session_id"]
+    r = client.post("/api/export", json={"staff_ids": ["3"], "department": "@SUM(1)"})
+    assert r.status_code == 200, r.text
+
+    row = r.text.strip().splitlines()[1]
+    assert ''''=HYPERLINK''' in row and ",'@SUM(1)," in row, row
+
+
 if __name__ == "__main__":
     test_export_returns_csv_for_selected_ids_only()
+    test_export_cells_cannot_run_as_spreadsheet_formulas()
     print("ALL CHECKS PASSED")
