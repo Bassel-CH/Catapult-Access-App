@@ -156,14 +156,3 @@ export interface ExportRequest {
   department: string
   audit_date?: string | null
 }
-
-// ── Errors ─────────────────────────────────────────────────────────────────
-export interface ValidationError {
-  loc: (string | number)[]
-  msg: string
-  type: string
-}
-
-export interface HTTPValidationError {
-  detail: ValidationError[] | string
-}

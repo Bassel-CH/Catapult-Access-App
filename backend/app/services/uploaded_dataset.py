@@ -500,16 +500,3 @@ class UploadedDataset:
                                 f"{app['domain']}::{perm['name']}"
                             )
         return out
-
-    def get_current_data_summary(self) -> Optional[Dict[str, Any]]:
-        """Get summary of currently loaded data"""
-        if self.current_df is None:
-            return None
-
-        return {
-            "filename": self.filename,
-            "row_count": len(self.current_df),
-            "columns": list(self.current_df.columns),
-            "has_data": True,
-            "source_breakdown": self._get_source_breakdown(self.current_df),
-        }

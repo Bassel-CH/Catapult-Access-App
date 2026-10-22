@@ -13,7 +13,6 @@ from ..models.schemas import (
     UploadResponse,
     FilterRequest,
     FilterResponse,
-    ReviewRequest,
     ReviewDocumentRequest,
     ExportRequest,
     AuditTreeRequest,
@@ -165,30 +164,6 @@ async def apply_filters(
         raise internal_error("Error applying filters")
 
 
-@router.post("/review")
-async def build_review(
-    request: ReviewRequest,
-    dataset: UploadedDataset = Depends(current_session),
-):
-    """
-    Build a per-profile access review for the selected staff.
-
-    For each selected name, returns their access split into Direct
-    Assignment (reviewable, shown first) and Position-Based (reference).
-    This is the data the printable review document is rendered from.
-    """
-    try:
-        reviews = dataset.build_review(request.staff_names)
-        return {
-            "success": True,
-            "reviews": reviews,
-        }
-    except NoDataLoadedError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
-        raise internal_error("Error building review")
-
-
 @router.post("/review-document", response_class=HTMLResponse)
 async def review_document(
     request: ReviewDocumentRequest,
@@ -316,21 +291,6 @@ async def end_session(x_session_id: Optional[str] = Header(None)):
     """Forget the caller's dataset now (used by "Start a new audit")."""
     sessions.end(x_session_id)
     return {"success": True}
-
-
-@router.get("/status")
-async def get_status(x_session_id: Optional[str] = Header(None)):
-    """Get the caller's current data status."""
-    dataset = sessions.get(x_session_id)
-    summary = dataset.get_current_data_summary() if dataset else None
-
-    if summary is None:
-        return {
-            "has_data": False,
-            "message": "No data loaded. Upload a CSV to begin."
-        }
-
-    return summary
 
 
 @router.get("/health")

@@ -73,18 +73,6 @@ class FilterResponse(BaseModel):
     filtered_rows: int
 
 
-class ReviewRequest(BaseModel):
-    """Request body for building a per-person access review"""
-    staff_names: List[str] = Field(..., description="Selected staff names to review")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "staff_names": ["Amber Weiss", "Amber WeissTL", "Brian Wishard"]
-            }
-        }
-
-
 class ReviewDocumentRequest(BaseModel):
     """Request body for generating the printable review document"""
     staff_names: List[str] = Field(..., description="Selected staff names")
@@ -110,21 +98,6 @@ class ExportRequest(BaseModel):
                 "audit_date": "2026-07-28"
             }
         }
-
-
-class ExportResponse(BaseModel):
-    """Response after successful export"""
-    success: bool
-    filename: str
-    row_count: int
-    download_url: str
-
-
-class ErrorResponse(BaseModel):
-    """Standard error response"""
-    success: bool = False
-    error: str
-    detail: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
