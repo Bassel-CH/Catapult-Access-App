@@ -1,11 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Catapult Applications Audit Map</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<!-- Built by a script from the code at tag v1.0.0: the code excerpts are copied
+     from that version, and the build checks every line reference against it. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one vertical route down the page; each stop is a station on it, with
-   "why" notes beside the text on wide screens and below it on phones. */
+/* Layout: a horizontal timeline of stops across the top; the chosen stop's
+   story below it; and, when a function is picked, its real code beside a
+   step-by-step walkthrough. */
 :root {
   --bg: #f4f5f7;
   --panel: #ffffff;
@@ -22,7 +30,14 @@
   --flag: #b45309;
   --flag-soft: #fdf1e0;
   --route: #c9d4f2;
-  --code-bg: #eef1f7;
+  --code-bg: #f6f8fc;
+  --code-line: #fff4d6;
+  --code-num: #9aa3b2;
+  --tok-kw: #7a2bd1;
+  --tok-str: #0f7a4a;
+  --tok-com: #7b8494;
+  --tok-fn: #1b3aa8;
+  --tok-num: #b0431a;
   --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 2px 6px rgba(16, 24, 40, .06);
 
   --font-display: "Archivo", "Segoe UI", system-ui, sans-serif;
@@ -34,7 +49,9 @@
     --bg: #12151c; --panel: #1a1f29; --ink: #e7eaf0; --muted: #a2aab8; --line: #2b3240;
     --brand: #7b9bff; --brand-ink: #b5c6ff; --brand-soft: #1e2a4d;
     --keep: #4fc58c; --keep-soft: #17352a; --revoke: #f07a70; --revoke-soft: #3d1f1d;
-    --flag: #f0a54a; --flag-soft: #3a2a14; --route: #2e3b63; --code-bg: #222938;
+    --flag: #f0a54a; --flag-soft: #3a2a14; --route: #2e3b63;
+    --code-bg: #151a23; --code-line: #3a3218; --code-num: #5f6878;
+    --tok-kw: #c79bff; --tok-str: #6fd3a0; --tok-com: #7c8698; --tok-fn: #9db4ff; --tok-num: #f2a07b;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.3);
     color-scheme: dark;
   }
@@ -43,736 +60,446 @@
   --bg: #12151c; --panel: #1a1f29; --ink: #e7eaf0; --muted: #a2aab8; --line: #2b3240;
   --brand: #7b9bff; --brand-ink: #b5c6ff; --brand-soft: #1e2a4d;
   --keep: #4fc58c; --keep-soft: #17352a; --revoke: #f07a70; --revoke-soft: #3d1f1d;
-  --flag: #f0a54a; --flag-soft: #3a2a14; --route: #2e3b63; --code-bg: #222938;
+  --flag: #f0a54a; --flag-soft: #3a2a14; --route: #2e3b63;
+  --code-bg: #151a23; --code-line: #3a3218; --code-num: #5f6878;
+  --tok-kw: #c79bff; --tok-str: #6fd3a0; --tok-com: #7c8698; --tok-fn: #9db4ff; --tok-num: #f2a07b;
   --shadow: 0 1px 2px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.3);
   color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
-body {
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font-body);
-  font-size: 17px;
-  line-height: 1.55;
-}
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.55; }
 .wrap {
-  max-width: 1080px;
-  margin: 0 auto;
+  max-width: 1180px; margin: 0 auto;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 40px 72px;
+  padding-block: 36px 72px;
+  display: grid; gap: 28px;
 }
 h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
 p { margin: 0; }
-code, .mono { font-family: var(--font-mono); font-size: .82em; }
-a { color: var(--brand-ink); }
-:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+code { font-family: var(--font-mono); font-size: .85em; background: var(--code-bg); padding: 1px 6px; border-radius: 5px; }
+button { font: inherit; }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
 
-/* ---------- header ---------- */
-.eyebrow {
-  font-family: var(--font-display); font-weight: 700; font-size: 13px;
-  letter-spacing: .12em; text-transform: uppercase; color: var(--brand-ink);
-}
-header { display: grid; gap: 14px; max-width: 70ch; }
-header h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 800; line-height: 1.05; letter-spacing: -.01em; }
+.eyebrow { font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brand-ink); }
+header { display: grid; gap: 12px; max-width: 72ch; }
+header h1 { font-size: clamp(30px, 4.6vw, 48px); font-weight: 800; line-height: 1.05; letter-spacing: -.01em; }
 .lede { font-size: 19px; color: var(--muted); }
-.toolbar { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; margin-top: 6px; }
-.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; font-size: 15px; }
-.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.switch .track {
-  width: 42px; height: 24px; border-radius: 999px; background: var(--line);
-  position: relative; transition: background .2s; flex: none;
-}
-.switch .track::after {
-  content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
-  border-radius: 50%; background: var(--panel); box-shadow: var(--shadow); transition: transform .2s;
-}
-.switch input:checked + .track { background: var(--brand); }
-.switch input:checked + .track::after { transform: translateX(18px); }
-.switch input:focus-visible + .track { outline: 3px solid var(--brand); outline-offset: 2px; }
-.toolbar .hint { color: var(--muted); font-size: 14px; }
 
-/* ---------- route overview ---------- */
-.overview {
-  margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0;
+/* ---------- timeline ---------- */
+.timeline { display: grid; gap: 10px; }
+.tl-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.tl-bar .where { font-size: 15px; color: var(--muted); font-weight: 600; }
+.nav { display: flex; gap: 8px; }
+.nav button {
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 10px;
+  padding: 8px 14px; font-weight: 700; cursor: pointer; box-shadow: var(--shadow);
 }
-.overview a {
-  display: inline-flex; gap: 8px; align-items: center; text-decoration: none; color: var(--ink);
-  background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
-  padding: 6px 12px 6px 6px; font-size: 14px; font-weight: 600;
+.nav button:disabled { opacity: .45; cursor: default; }
+.track-wrap { overflow-x: auto; scroll-behavior: smooth; padding: 6px 2px 14px; scrollbar-width: thin; }
+.track { display: flex; list-style: none; margin: 0; padding: 0; min-width: max-content; position: relative; }
+.track li { position: relative; flex: 0 0 auto; width: 150px; }
+.track li::before {
+  content: ""; position: absolute; top: 23px; left: 0; right: 0; height: 4px; background: var(--route);
 }
-.overview a:hover { border-color: var(--brand); }
-.overview .n {
-  width: 24px; height: 24px; border-radius: 50%; background: var(--brand-soft); color: var(--brand-ink);
-  display: grid; place-items: center; font-family: var(--font-display); font-size: 12px; font-weight: 800;
+.track li:first-child::before { left: 50%; }
+.track li:last-child::before { right: 50%; }
+.track li.done::before { background: var(--brand); }
+.track li.current::before { background: linear-gradient(90deg, var(--brand) 50%, var(--route) 50%); }
+.track li:first-child.current::before { background: var(--route); }
+.stop-btn {
+  position: relative; width: 100%; background: none; border: 0; cursor: pointer; color: var(--ink);
+  display: grid; justify-items: center; gap: 8px; padding: 0 8px; text-align: center;
 }
+.stop-btn .dot {
+  width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--panel); border: 3px solid var(--route); color: var(--brand-ink);
+  font-family: var(--font-display); font-weight: 800; font-size: 18px; transition: transform .15s;
+}
+.done .stop-btn .dot { border-color: var(--brand); }
+.current .stop-btn .dot { background: var(--brand); border-color: var(--brand); color: #fff; transform: scale(1.08); }
+.stop-btn:hover .dot { border-color: var(--brand); }
+.stop-btn .t { font-family: var(--font-display); font-weight: 700; font-size: 14.5px; line-height: 1.2; }
+.stop-btn .w { font-size: 12.5px; color: var(--muted); }
 
-/* ---------- the route ---------- */
-.route { position: relative; margin-top: 44px; display: grid; gap: 28px; }
-.route::before {
-  content: ""; position: absolute; left: 21px; top: 8px; bottom: 8px; width: 4px;
-  background: var(--route); border-radius: 2px;
-}
-.stop { position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 18px; scroll-margin-top: 20px; }
-.marker {
-  position: relative; z-index: 1; width: 46px; height: 46px; border-radius: 50%;
-  background: var(--brand); color: #fff; display: grid; place-items: center;
-  font-family: var(--font-display); font-weight: 800; font-size: 18px;
-  box-shadow: 0 0 0 6px var(--bg);
-}
-.card {
-  background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
-  padding: 22px 24px; display: grid; gap: 18px; min-width: 0;
-}
-.card-head { display: grid; gap: 6px; }
-.card-head h2 { font-size: 24px; font-weight: 700; }
-.card-head .who { font-size: 14px; color: var(--muted); font-weight: 600; }
-.cols { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+/* ---------- stage ---------- */
+.stage { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); padding: 26px 28px; display: grid; gap: 22px; min-width: 0; }
+.stage-head { display: grid; gap: 4px; }
+.stage-head .who { font-size: 14px; color: var(--muted); font-weight: 600; }
+.stage-head h2 { font-size: 30px; font-weight: 800; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 26px; align-items: start; }
 .cols > * { min-width: 0; }
-.body { display: grid; gap: 12px; max-width: 64ch; }
-.body ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
-
-.why {
-  background: var(--brand-soft); border-radius: 10px; padding: 14px 16px; display: grid; gap: 6px; font-size: 15.5px;
-}
-.why .label, .code .label {
-  font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-}
+.story { display: grid; gap: 14px; max-width: 66ch; }
+.story ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.side { display: grid; gap: 14px; }
+.why { background: var(--brand-soft); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; font-size: 15.5px; }
+.label { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .why .label { color: var(--brand-ink); }
 
-.code { border-top: 1px dashed var(--line); padding-top: 14px; display: grid; gap: 8px; }
-.code .label { color: var(--muted); }
-.code ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.code li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 14.5px; }
-.code code { background: var(--code-bg); padding: 2px 7px; border-radius: 6px; overflow-wrap: anywhere; }
-body:not(.show-code) .code { display: none; }
+/* functions */
+.fns { border-top: 1px solid var(--line); padding-top: 18px; display: grid; gap: 12px; }
+.fns-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.fns-head h3 { font-size: 19px; font-weight: 700; }
+.fns-head p { font-size: 15px; color: var(--muted); }
+.fn-list { display: flex; flex-wrap: wrap; gap: 10px; }
+.fn {
+  border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 10px 14px; cursor: pointer;
+  display: grid; gap: 2px; text-align: left; color: var(--ink); max-width: 320px;
+}
+.fn:hover { border-color: var(--brand); }
+.fn[aria-pressed="true"] { border: 2px solid var(--brand); background: var(--brand-soft); padding: 9px 13px; }
+.fn .fn-t { font-weight: 700; }
+.fn .fn-f { font-family: var(--font-mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
 
-/* ---------- visual pieces inside stops ---------- */
+/* code panel */
+.codepanel { display: grid; gap: 14px; }
+.cp-head { display: grid; gap: 4px; }
+.cp-head h3 { font-size: 22px; font-weight: 800; }
+.cp-head .file { font-family: var(--font-mono); font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.cp-head p { color: var(--muted); max-width: 70ch; }
+.cp-body { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.cp-body > * { min-width: 0; }
+.code {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 12px; overflow: auto; max-height: 560px;
+  font-family: var(--font-mono); font-size: 13px; line-height: 1.6; padding: 10px 0;
+}
+.code .ln { display: grid; grid-template-columns: 3.4em minmax(0, 1fr); padding-right: 14px; white-space: pre; transition: background .15s, opacity .15s; }
+.code .ln .num { color: var(--code-num); text-align: right; padding-right: 12px; user-select: none; }
+.code.focusing .ln { opacity: .45; }
+.code.focusing .ln.on { opacity: 1; background: var(--code-line); }
+.hljs-keyword, .hljs-built_in, .hljs-literal, .hljs-meta, .hljs-type { color: var(--tok-kw); }
+.hljs-string, .hljs-regexp { color: var(--tok-str); }
+.hljs-comment, .hljs-doctag { color: var(--tok-com); font-style: italic; }
+.hljs-title, .hljs-function, .hljs-attr, .hljs-section, .hljs-attribute, .hljs-selector-tag { color: var(--tok-fn); }
+.hljs-number, .hljs-variable, .hljs-params { color: var(--tok-num); }
+
+.steps { display: grid; gap: 8px; }
+.steps-nav { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.steps-nav span { font-size: 14px; color: var(--muted); font-weight: 600; }
+.steps-nav button { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 5px 12px; font-weight: 700; cursor: pointer; color: var(--ink); }
+.steps-nav button:disabled { opacity: .45; cursor: default; }
+.step {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; text-align: left; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 10px; padding: 10px 12px; font-size: 15px;
+}
+.step .sn { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--code-bg); font-family: var(--font-display); font-weight: 800; font-size: 13px; color: var(--muted); }
+.step .lines { display: block; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.step[aria-pressed="true"] { border: 2px solid var(--flag); background: var(--flag-soft); padding: 9px 11px; }
+.step[aria-pressed="true"] .sn { background: var(--flag); color: #fff; }
+.cp-why { background: var(--keep-soft); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; font-size: 15.5px; }
+.cp-why .label { color: var(--keep); }
+.empty-code { border: 2px dashed var(--line); border-radius: 12px; padding: 18px; color: var(--muted); font-size: 15px; }
+
+/* stop visuals */
 .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
 th, td { text-align: left; padding: 8px 12px; white-space: nowrap; border-bottom: 1px solid var(--line); }
 th { font-family: var(--font-mono); font-weight: 500; font-size: 12.5px; color: var(--muted); background: var(--code-bg); }
 tr:last-child td { border-bottom: 0; }
-
-.funnel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.funnel div { border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
-.funnel b { font-family: var(--font-display); font-size: 26px; font-variant-numeric: tabular-nums; line-height: 1.1; }
-.funnel span { font-size: 13.5px; color: var(--muted); }
-.f-in { background: var(--code-bg); }
-.f-keep { background: var(--keep-soft); }
-.f-keep b { color: var(--keep); }
-.f-drop { background: var(--revoke-soft); }
-.f-drop b { color: var(--revoke); }
-
-.session {
-  border: 2px dashed var(--route); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; font-size: 15px;
-}
-.session .sid { font-family: var(--font-mono); font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.note { font-size: 14px; color: var(--muted); }
+.figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.figs div { border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; background: var(--code-bg); }
+.figs b { font-family: var(--font-display); font-size: 26px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.figs span { font-size: 13.5px; color: var(--muted); }
+.figs .k { background: var(--keep-soft); } .figs .k b { color: var(--keep); }
+.figs .r { background: var(--revoke-soft); } .figs .r b { color: var(--revoke); }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; }
-.pill {
-  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
-  font-size: 13px; font-weight: 600; background: var(--code-bg); color: var(--ink);
-}
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--code-bg); color: var(--ink); }
 .pill.keep { background: var(--keep-soft); color: var(--keep); }
 .pill.revoke { background: var(--revoke-soft); color: var(--revoke); }
 .pill.flag { background: var(--flag-soft); color: var(--flag); }
 .pill.brand { background: var(--brand-soft); color: var(--brand-ink); }
-
+.box { border: 2px dashed var(--route); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; font-size: 15px; }
+.mono-muted { font-family: var(--font-mono); font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
 .tree { font-size: 15px; display: grid; gap: 4px; }
-.tree .node { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.tree div { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .tree .l1 { font-weight: 700; }
 .tree .l2 { padding-left: 18px; font-weight: 600; }
 .tree .l3 { padding-left: 36px; }
 .tree .l4 { padding-left: 54px; color: var(--muted); }
-.tree .direct { color: var(--flag); }
-.tree .position { color: var(--brand-ink); }
-.tree .id { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); }
-
-.mock-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center;
-  background: var(--flag-soft); border-radius: 10px; padding: 12px 14px; box-shadow: inset 3px 0 0 var(--flag);
-}
-.mock-row .note { grid-column: 1 / -1; font-size: 14px; color: var(--flag); }
-
-/* Access rule demo */
-.demo { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-.demo-group { padding: 12px 14px; display: grid; gap: 4px; }
-.demo-group + .demo-group { border-top: 1px solid var(--line); }
-.demo-group h3 { font-size: 14px; font-weight: 700; letter-spacing: .02em; }
-.demo-group h3 small { font-family: var(--font-body); font-weight: 600; color: var(--muted); }
-.perm { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 0; }
-.perm .name { font-weight: 600; }
-.perm .name small { display: block; font-weight: 400; font-size: 13px; color: var(--muted); }
-.perm.locked .name { color: var(--muted); }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.seg button {
-  font: inherit; font-size: 14px; font-weight: 600; padding: 5px 12px; border: 0; background: var(--panel);
-  color: var(--muted); cursor: pointer;
-}
-.seg button + button { border-left: 1px solid var(--line); }
-.seg button[aria-pressed="true"].k { background: var(--keep); color: #fff; }
-.seg button[aria-pressed="true"].r { background: var(--revoke); color: #fff; }
-.seg button:disabled { cursor: not-allowed; opacity: .55; }
-.lock { font-size: 12.5px; font-weight: 700; color: var(--revoke); }
-.demo-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 14px; background: var(--code-bg); }
-.demo-foot .reset { margin-left: auto; font: inherit; font-size: 14px; font-weight: 600; background: none; border: 0; color: var(--brand-ink); cursor: pointer; text-decoration: underline; }
-
-.counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.counts div { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; }
-.counts b { font-family: var(--font-display); font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.counts span { font-size: 13.5px; color: var(--muted); }
-
+.tree .direct { color: var(--flag); } .tree .position { color: var(--brand-ink); }
+.tree .id { font-family: var(--font-mono); font-size: 12.5px; }
+.hl-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; background: var(--flag-soft); border-radius: 10px; padding: 12px 14px; box-shadow: inset 3px 0 0 var(--flag); }
+.hl-row .n2 { grid-column: 1 / -1; font-size: 14px; color: var(--flag); }
 .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
 .tile h3 { font-size: 17px; font-weight: 700; }
 .tile p { font-size: 15px; color: var(--muted); }
-
-.leftover { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.leftover div { border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; font-size: 15px; }
-.leftover h3 { font-size: 15px; font-weight: 700; }
-.gone { background: var(--code-bg); }
-.kept { background: var(--keep-soft); }
-
-/* ---------- delivery section ---------- */
-.section { margin-top: 64px; display: grid; gap: 18px; }
-.section > h2 { font-size: 30px; font-weight: 800; }
-.section > p { max-width: 68ch; color: var(--muted); }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.two > div { border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; font-size: 15px; background: var(--code-bg); }
+.two > div.ok { background: var(--keep-soft); }
+.two h3 { font-size: 15px; font-weight: 700; }
 .chain { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; }
-.hop {
-  flex: 1 1 200px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-  box-shadow: var(--shadow); padding: 16px 18px; display: grid; gap: 8px; align-content: start; min-width: 0;
+.hop { flex: 1 1 180px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.hop h3 { font-size: 16px; font-weight: 700; }
+.hop p { font-size: 14.5px; color: var(--muted); }
+.hop.ct { border: 2px solid var(--brand); }
+.hop .in { background: var(--brand-soft); color: var(--brand-ink); border-radius: 8px; padding: 5px 9px; font-weight: 600; font-size: 13.5px; }
+.arrow { display: grid; place-items: center; color: var(--muted); font-weight: 800; font-size: 20px; }
+
+/* Access rule demo */
+.demo { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.dg { padding: 12px 14px; display: grid; gap: 4px; }
+.dg + .dg { border-top: 1px solid var(--line); }
+.dg h3 { font-size: 14px; font-weight: 700; }
+.dg h3 small { font-family: var(--font-body); font-weight: 600; color: var(--muted); }
+.perm { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 5px 0; }
+.perm .name { font-weight: 600; }
+.perm .lock { display: block; font-size: 12.5px; font-weight: 700; color: var(--revoke); }
+.perm.locked .name { color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { font-size: 14px; font-weight: 600; padding: 5px 12px; border: 0; background: var(--panel); color: var(--muted); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"].k { background: var(--keep); color: #fff; }
+.seg button[aria-pressed="true"].r { background: var(--revoke); color: #fff; }
+.seg button:disabled { cursor: not-allowed; opacity: .55; }
+.demo-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 14px; background: var(--code-bg); }
+.demo-foot .reset { margin-left: auto; font-size: 14px; font-weight: 600; background: none; border: 0; color: var(--brand-ink); cursor: pointer; text-decoration: underline; }
+
+footer { padding-top: 16px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+
+@media (max-width: 860px) {
+  .cols, .cp-body, .two { grid-template-columns: minmax(0, 1fr); }
+  .tiles { grid-template-columns: minmax(0, 1fr); }
+  .stage { padding: 20px 18px; }
+  .code { max-height: 420px; }
 }
-.hop h3 { font-size: 18px; font-weight: 700; }
-.hop p { font-size: 15px; color: var(--muted); }
-.hop.container { border: 2px solid var(--brand); }
-.inner { display: grid; gap: 6px; }
-.inner span { background: var(--brand-soft); color: var(--brand-ink); border-radius: 8px; padding: 6px 10px; font-weight: 600; font-size: 14px; }
-.arrow { flex: 0 0 auto; display: grid; place-items: center; color: var(--muted); font-family: var(--font-display); font-weight: 800; font-size: 22px; }
-.rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.rule { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; }
-.rule h3 { font-size: 16px; font-weight: 700; }
-.rule p { font-size: 15px; color: var(--muted); }
-
-.next { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.next div { border: 1px dashed var(--route); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; }
-.next h3 { font-size: 16px; font-weight: 700; }
-.next p { font-size: 15px; color: var(--muted); }
-
-footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
-
-@media (max-width: 760px) {
+@media (max-width: 520px) {
   body { font-size: 16px; }
-  .cols, .rules, .leftover { grid-template-columns: minmax(0, 1fr); }
-  .tiles, .next { grid-template-columns: minmax(0, 1fr); }
-  .route::before { left: 15px; }
-  .stop { grid-template-columns: 34px minmax(0, 1fr); gap: 12px; }
-  .marker { width: 34px; height: 34px; font-size: 15px; box-shadow: 0 0 0 4px var(--bg); }
-  .card { padding: 18px; }
-  .arrow { width: 100%; transform: rotate(90deg); }
-}
-@media (max-width: 460px) {
-  .funnel, .counts { grid-template-columns: minmax(0, 1fr); }
+  .figs { grid-template-columns: minmax(0, 1fr); }
+  .track li { width: 118px; }
+  .stage-head h2 { font-size: 25px; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
 }
-html { scroll-behavior: smooth; }
 </style>
 
+</head>
+<body>
 <div class="wrap">
   <header>
     <span class="eyebrow">How it works</span>
     <h1>Catapult Applications Audit</h1>
-    <p class="lede">Follow one month's audit from the uploaded permissions export to the finished report. Each stop says what happens, why it works that way, and where the data is at that moment.</p>
-    <div class="toolbar">
-      <label class="switch" for="show-code">
-        <input type="checkbox" id="show-code">
-        <span class="track" aria-hidden="true"></span>
-        Show where each stop lives in the code
-      </label>
-      <span class="hint">For developers. Off, the map reads without any code.</span>
-    </div>
+    <p class="lede">One month's audit, from the uploaded export to the finished report. Move along the timeline; at each stop, open the code that does the work and walk through it step by step.</p>
   </header>
 
-  <ol class="overview" aria-label="Stops on the route">
-    <li><a href="#export"><span class="n">1</span>The export arrives</a></li>
-    <li><a href="#checked"><span class="n">2</span>Checked and cleaned</a></li>
-    <li><a href="#session"><span class="n">3</span>A private session</a></li>
-    <li><a href="#tree"><span class="n">4</span>The audit tree</a></li>
-    <li><a href="#setup"><span class="n">5</span>IT setup</a></li>
-    <li><a href="#review"><span class="n">6</span>Manager audit</a></li>
-    <li><a href="#report"><span class="n">7</span>The report</a></li>
-    <li><a href="#documents"><span class="n">8</span>Documents</a></li>
-    <li><a href="#ends"><span class="n">9</span>The session ends</a></li>
-  </ol>
-
-  <div class="route">
-
-    <!-- 1 -->
-    <section class="stop" id="export" aria-labelledby="h-export">
-      <div class="marker" aria-hidden="true">1</div>
-      <div class="card">
-        <div class="card-head">
-          <span class="who">IT · once a month</span>
-          <h2 id="h-export">The export arrives</h2>
-        </div>
-        <div class="cols">
-          <div class="body">
-            <p>Each month IT downloads the staff permissions export, a CSV file of about 5,000 rows, and uploads it. <strong>Each row is one permission one staff member holds</strong>: which app it belongs to, what it's called, and whether it was given to them directly or comes with their position.</p>
-            <div class="table-wrap" role="region" aria-label="Example rows" tabindex="0">
-              <table>
-                <thead><tr><th>StaffName</th><th>DomainName</th><th>PermissionName</th><th>PositionName</th><th>PermissionSource</th></tr></thead>
-                <tbody>
-                  <tr><td>Jordan Lee</td><td>Catapult EHR</td><td>Access</td><td></td><td>Direct Assignment</td></tr>
-                  <tr><td>Jordan Lee</td><td>Catapult EHR</td><td>Open Charts</td><td></td><td>Direct Assignment</td></tr>
-                  <tr><td>Jordan Lee</td><td>Scheduling</td><td>View Calendar</td><td>Team Lead</td><td>Position-Based</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p style="font-size:14px;color:var(--muted)">Example rows with a made-up name. The real export also has StaffId and StaffEmailAddress.</p>
-          </div>
-          <aside class="why">
-            <span class="label">Why it matters</span>
-            <p>Direct assignments are the ones the manager reviews one by one: someone gave them to this person on purpose. Position-based access comes with the job and is shown for reference.</p>
-          </aside>
-        </div>
-        <div class="code">
-          <span class="label">In the code</span>
-          <ul>
-            <li><code>frontend/src/components/it-setup/UploadPanel.tsx</code> the upload button</li>
-            <li><code>POST /api/upload</code> in <code>backend/app/api/routes.py</code></li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- 2 -->
-    <section class="stop" id="checked" aria-labelledby="h-checked">
-      <div class="marker" aria-hidden="true">2</div>
-      <div class="card">
-        <div class="card-head">
-          <span class="who">The app · in a second</span>
-          <h2 id="h-checked">Checked and cleaned</h2>
-        </div>
-        <div class="cols">
-          <div class="body">
-            <p>Before anything else, the app reads the file and checks it:</p>
-            <ul>
-              <li><strong>It reads the text correctly</strong>, whether the file was saved by Windows or as UTF-8, so names like "Jené" keep their accents.</li>
-              <li><strong>It drops the export's junk rows</strong>: a line of dashes and a "(rows affected)" footer the system adds every month.</li>
-              <li><strong>It refuses files it can't use</strong>: the wrong columns, no real rows, larger than 10 MB, or not a .csv. The message says what's wrong.</li>
-            </ul>
-            <div class="funnel" aria-label="The July export, as uploaded">
-              <div class="f-in"><b>4,963</b><span>rows in the July file</span></div>
-              <div class="f-keep"><b>4,961</b><span>permission rows kept</span></div>
-              <div class="f-drop"><b>2</b><span>junk rows dropped</span></div>
-            </div>
-          </div>
-          <aside class="why">
-            <span class="label">Why</span>
-            <p>An audit over an empty or wrong file would produce a report that says nothing while looking official. Refusing it outright is safer than quietly carrying on.</p>
-          </aside>
-        </div>
-        <div class="code">
-          <span class="label">In the code</span>
-          <ul>
-            <li><code>backend/app/services/uploaded_dataset.py</code> <code>process_upload</code></li>
-            <li><code>backend/tests/test_csv_reading.py</code> the encoding checks</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- 3 -->
-    <section class="stop" id="session" aria-labelledby="h-session">
-      <div class="marker" aria-hidden="true">3</div>
-      <div class="card">
-        <div class="card-head">
-          <span class="who">The app · for this upload only</span>
-          <h2 id="h-session">A private session starts</h2>
-        </div>
-        <div class="cols">
-          <div class="body">
-            <p>The upload gets its own <strong>session</strong>: a long random key, and the file's data held in the server's memory. The browser shows the key with every request, and only ever sees its own data.</p>
-            <div class="session">
-              <span class="sid">session key · kQ3vR8…(43 characters)…xT2</span>
-              <div class="pills">
-                <span class="pill brand">In memory only</span>
-                <span class="pill">Never written to disk</span>
-                <span class="pill">One per upload</span>
-              </div>
-            </div>
-          </div>
-          <aside class="why">
-            <span class="label">Why</span>
-            <p>Two people auditing at the same time can't see or overwrite each other's work. The data holds real staff permissions, so it never touches the server's disk.</p>
-          </aside>
-        </div>
-        <div class="code">
-          <span class="label">In the code</span>
-          <ul>
-            <li><code>backend/app/services/session_service.py</code></li>
-            <li><code>current_session</code> in <code>backend/app/api/routes.py</code></li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- 4 -->
-    <section class="stop" id="tree" aria-labelledby="h-tree">
-      <div class="marker" aria-hidden="true">4</div>
-      <div class="card">
-        <div class="card-head">
-          <span class="who">The app · for every staff member</span>
-          <h2 id="h-tree">The audit tree</h2>
-        </div>
-        <div class="cols">
-          <div class="body">
-            <p>Each staff member's rows are arranged into a tree: <strong>where the access comes from</strong>, then <strong>which app</strong>, then <strong>each permission</strong>.</p>
-            <div class="tree" aria-label="Example audit tree">
-              <div class="node l1">Jordan Lee</div>
-              <div class="node l2 direct">Direct assignment</div>
-              <div class="node l3">Catapult EHR</div>
-              <div class="node l4">Access <span class="id">3f9a1c07b2e4</span></div>
-              <div class="node l4">Open Charts <span class="id">8d20e6a1c94f</span></div>
-              <div class="node l2 position">Position: Team Lead</div>
-              <div class="node l3">Scheduling</div>
-              <div class="node l4">View Calendar <span class="id">b71e0d53a6c2</span></div>
-            </div>
-            <p>Every permission gets an <strong>ID</strong>, a fingerprint worked out from the row itself. Highlights and decisions are all recorded against these IDs.</p>
-          </div>
-          <aside class="why">
-            <span class="label">Why fingerprints</span>
-            <p>The same file always produces the same IDs. If the server restarts mid-audit, uploading the same file again brings back every selection and decision still open in the browser.</p>
-          </aside>
-        </div>
-        <div class="code">
-          <span class="label">In the code</span>
-          <ul>
-            <li><code>build_audit_tree</code> and <code>_leaf_id</code> in <code>backend/app/services/uploaded_dataset.py</code></li>
-            <li><code>POST /api/audit-tree</code></li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- 5 -->
-    <section class="stop" id="setup" aria-labelledby="h-setup">
-      <div class="marker" aria-hidden="true">5</div>
-      <div class="card">
-        <div class="card-head">
-          <span class="who">IT · step 1 on screen</span>
-          <h2 id="h-setup">IT setup</h2>
-        </div>
-        <div class="cols">
-          <div class="body">
-            <p>IT names the department and month, then picks the staff to review. They can search by name, filter by position, or search for a permission to find everyone who holds it.</p>
-            <p>Anything the manager should look at closely gets a <strong>highlight</strong>, with an optional note:</p>
-            <div class="mock-row">
-              <div><strong>Open Charts</strong><br><span style="font-size:14px;color:var(--muted)">Catapult EHR · Direct Assignment</span></div>
-              <span class="pill flag">★ Highlighted</span>
-              <span class="note">IT: Granted for a temporary project; confirm it's still needed.</span>
-            </div>
-          </div>
-          <aside class="why">
-            <span class="label">Where highlights go</span>
-            <p>A highlight follows the permission through the manager's review, the report and the printable packet, because it's attached to the permission's ID.</p>
-          </aside>
-        </div>
-        <div class="code">
-          <span class="label">In the code</span>
-          <ul>
-            <li><code>frontend/src/components/it-setup/</code> one file per part of this step</li>
-            <li><code>HighlightTree.tsx</code>, <code>PermissionSearch.tsx</code></li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- 6 -->
-    <section class="stop" id="review" aria-labelledby="h-review">
-      <div class="marker" aria-hidden="true">6</div>
-      <div class="card">
-        <div class="card-head">
-          <span class="who">Manager · step 2 on screen</span>
-          <h2 id="h-review">Manager audit</h2>
-        </div>
-        <div class="cols">
-          <div class="body">
-            <p>The manager marks each permission <strong>Keep</strong> or <strong>Revoke</strong>. One rule applies automatically: <strong>revoking an app's "Access" revokes the rest of that app</strong> and locks it, because without access the other permissions mean nothing.</p>
-            <p>Try it. Revoke "Access" below:</p>
-            <div class="demo" id="demo">
-              <div class="demo-group" data-group="direct">
-                <h3>Catapult EHR <small>· Direct assignment</small></h3>
-                <div class="perm" data-perm="access"><span class="name">Access</span><span class="seg"></span></div>
-                <div class="perm" data-perm="charts"><span class="name">Open Charts</span><span class="seg"></span></div>
-                <div class="perm" data-perm="orders"><span class="name">Edit Orders</span><span class="seg"></span></div>
-              </div>
-              <div class="demo-group" data-group="position">
-                <h3>Catapult EHR <small>· Position: Team Lead</small></h3>
-                <div class="perm" data-perm="p-access"><span class="name">Access</span><span class="seg"></span></div>
-                <div class="perm" data-perm="p-print"><span class="name">Print Labels</span><span class="seg"></span></div>
-              </div>
-              <div class="demo-foot" aria-live="polite">
-                <span class="pill keep" id="c-keep">0 keep</span>
-                <span class="pill revoke" id="c-revoke">0 revoke</span>
-                <span class="pill" id="c-none">5 undecided</span>
-                <button type="button" class="reset" id="reset">Reset</button>
-              </div>
-            </div>
-          </div>
-          <aside class="why">
-            <span class="label">Within one group only</span>
-            <p>Revoking the direct grant leaves the Team Lead group alone. Access that comes with a position is removed a different way, so the rule never marks it as gone while the person still has it through their job.</p>
-          </aside>
-        </div>
-        <div class="code">
-          <span class="label">In the code</span>
-          <ul>
-            <li><code>frontend/src/lib/cascade.ts</code> the rule on screen, for instant feedback</li>
-            <li><code>frontend/src/components/ManagerAudit.tsx</code></li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- 7 -->
-    <section class="stop" id="report" aria-labelledby="h-report">
-      <div class="marker" aria-hidden="true">7</div>
-      <div class="card">
-        <div class="card-head">
-          <span class="who">The app · when the manager clicks Finalize</span>
-          <h2 id="h-report">The report</h2>
-        </div>
-        <div class="cols">
-          <div class="body">
-            <p>Finalize sends every decision to the server. The server applies the Access rule again itself, then counts and writes the completed report: every staff member's access with each decision, highlight and note.</p>
-            <div class="counts" aria-label="Example report counts">
-              <div><b style="color:var(--keep)">53</b><span>Kept</span></div>
-              <div><b style="color:var(--revoke)">176</b><span>Revoked</span></div>
-              <div><b style="color:var(--muted)">221</b><span>No decision</span></div>
-            </div>
-          </div>
-          <aside class="why">
-            <span class="label">The server is the record</span>
-            <p>The screen's copy of the rule only makes clicks feel instant. The report's numbers always come from the server, and two separate checks confirm it counts the way it should.</p>
-          </aside>
-        </div>
-        <div class="code">
-          <span class="label">In the code</span>
-          <ul>
-            <li><code>backend/app/services/report_service.py</code></li>
-            <li><code>checks/</code> the two comparison checks</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- 8 -->
-    <section class="stop" id="documents" aria-labelledby="h-documents">
-      <div class="marker" aria-hidden="true">8</div>
-      <div class="card">
-        <div class="card-head">
-          <span class="who">Step 3 on screen</span>
-          <h2 id="h-documents">What comes out</h2>
-        </div>
-        <div class="tiles">
-          <div class="tile">
-            <h3>The report</h3>
-            <p>Read-only, opens in the browser and can be downloaded. The record of the audit.</p>
-          </div>
-          <div class="tile">
-            <h3>Review packet</h3>
-            <p>A printable page per staff member, with Keep and Revoke boxes and highlights marked.</p>
-          </div>
-          <div class="tile">
-            <h3>CSV export</h3>
-            <p>The selected staff's rows, with department and date added. Cells can't run as spreadsheet formulas.</p>
-          </div>
-        </div>
-        <div class="code">
-          <span class="label">In the code</span>
-          <ul>
-            <li><code>report_service.py</code>, <code>document_service.py</code>, <code>export_service.py</code> in <code>backend/app/services/</code></li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- 9 -->
-    <section class="stop" id="ends" aria-labelledby="h-ends">
-      <div class="marker" aria-hidden="true">9</div>
-      <div class="card">
-        <div class="card-head">
-          <span class="who">Automatically</span>
-          <h2 id="h-ends">The session ends</h2>
-        </div>
-        <div class="body">
-          <p>A session ends when the user clicks <strong>Start a new audit</strong>, uploads another file, or leaves it idle for <strong>60 minutes</strong>. Then the server forgets it.</p>
-        </div>
-        <div class="leftover">
-          <div class="gone">
-            <h3>Left on the server</h3>
-            <p>Nothing. No file, no database, no copy of the upload.</p>
-          </div>
-          <div class="kept">
-            <h3>Kept by the people involved</h3>
-            <p>Whatever they downloaded: the report, the packet, the export.</p>
-          </div>
-        </div>
-        <div class="code">
-          <span class="label">In the code</span>
-          <ul>
-            <li><code>DELETE /api/session</code>, and the idle sweep in <code>session_service.py</code></li>
-          </ul>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <section class="section" aria-labelledby="h-delivery">
-    <span class="eyebrow">Around the app</span>
-    <h2 id="h-delivery">How it reaches people</h2>
-    <p>The whole app ships as one container. A secure front door sits in front of it, and everything a user does passes through that door.</p>
-    <div class="chain">
-      <div class="hop">
-        <h3>Browser</h3>
-        <p>IT and managers use the app in a normal web browser.</p>
-      </div>
-      <div class="arrow" aria-hidden="true">→</div>
-      <div class="hop">
-        <h3>Secure front door</h3>
-        <p>Encrypts the connection (HTTPS). On AWS this is a load balancer; on a virtual machine, nginx on that machine. Sign-in will live here.</p>
-      </div>
-      <div class="arrow" aria-hidden="true">→</div>
-      <div class="hop container">
-        <h3>The container</h3>
-        <div class="inner">
-          <span>Web server: the pages</span>
-          <span>Backend: sessions, tree, report</span>
-        </div>
+  <nav class="timeline" aria-label="Audit timeline">
+    <div class="tl-bar">
+      <span class="where" id="where" aria-live="polite"></span>
+      <div class="nav">
+        <button type="button" id="prev" aria-label="Previous stop">← Back</button>
+        <button type="button" id="next" aria-label="Next stop">Next →</button>
       </div>
     </div>
-    <div class="rules">
-      <div class="rule">
-        <h3>Only the front door can reach it</h3>
-        <p>The container trusts what the front door tells it, so nothing else may connect to it.</p>
-      </div>
-      <div class="rule">
-        <h3>Exactly one copy</h3>
-        <p>Sessions live in one container's memory. A second copy couldn't see them.</p>
-      </div>
-      <div class="rule">
-        <h3>1 GB of memory, no swap</h3>
-        <p>Uploads stay in memory. Swap would write them to disk.</p>
-      </div>
-      <div class="rule">
-        <h3>A restart ends every session</h3>
-        <p>Users re-upload the same file, and their open audit comes back.</p>
-      </div>
+    <div class="track-wrap" id="track-wrap">
+      <ol class="track" id="track"></ol>
     </div>
-  </section>
+  </nav>
 
-  <section class="section" aria-labelledby="h-next">
-    <span class="eyebrow">Still to come</span>
-    <h2 id="h-next">Phase two</h2>
-    <div class="next">
-      <div>
-        <h3>Sign-in</h3>
-        <p>There is no login yet, so the app must only be reachable from a restricted network.</p>
-      </div>
-      <div>
-        <h3>A record of finalized audits</h3>
-        <p>Who generated each report, and when, without keeping any staff data.</p>
-      </div>
-      <div>
-        <h3>The hosting choice</h3>
-        <p>AWS or an on-site virtual machine. The container works the same on either.</p>
-      </div>
-    </div>
-  </section>
+  <main class="stage" id="stage" aria-live="polite"></main>
 
   <footer>
-    <span>Catapult Applications Audit v1.0.0</span>
-    <span>October 2026</span>
-    <span>Names and figures on this page are examples.</span>
+    <span>Catapult Applications Audit</span>
+    <span>Code shown as of v1.0.0</span>
+    <span>Names and figures in the examples are made up.</span>
+    <span>Tip: the ← and → keys move along the timeline.</span>
   </footer>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/nginx.min.js"></script>
+<script id="map-data" type="application/json">{"stops": [{"id": "export", "short": "The export arrives", "who": "IT · once a month", "title": "The export arrives", "story": "<p>Each month IT downloads the staff permissions export, a CSV file of about 5,000 rows, and uploads it. <strong>Each row is one permission one staff member holds<\/strong>: which app it belongs to, what it's called, and whether it was given to them directly or comes with their position.<\/p>", "visual": "<div class=\"table-wrap\" role=\"region\" aria-label=\"Example rows\" tabindex=\"0\"><table>\n<thead><tr><th>StaffName<\/th><th>DomainName<\/th><th>PermissionName<\/th><th>PositionName<\/th><th>PermissionSource<\/th><\/tr><\/thead>\n<tbody>\n<tr><td>Jordan Lee<\/td><td>Catapult EHR<\/td><td>Access<\/td><td><\/td><td>Direct Assignment<\/td><\/tr>\n<tr><td>Jordan Lee<\/td><td>Catapult EHR<\/td><td>Open Charts<\/td><td><\/td><td>Direct Assignment<\/td><\/tr>\n<tr><td>Jordan Lee<\/td><td>Scheduling<\/td><td>View Calendar<\/td><td>Team Lead<\/td><td>Position-Based<\/td><\/tr>\n<\/tbody><\/table><\/div>\n<p class=\"note\">Example rows with a made-up name. The real export also has StaffId and StaffEmailAddress.<\/p>", "whyLabel": "Why it matters", "why": "Direct assignments are the ones the manager reviews one by one: someone gave them to this person on purpose. Position-based access comes with the job and is shown for reference.", "fns": [{"code": "upload-call", "title": "Sending the file", "what": "In the browser. The upload button calls this to send the chosen file to the server.", "steps": [{"lines": [75, 75], "text": "The function the upload panel calls, given the file the user picked."}, {"lines": [76, 78], "text": "Wrap the file in <code>FormData<\/code>, the same package a plain web form uses to send a file. The bytes go as they are; nothing in the browser tries to read them."}, {"lines": [79, 82], "text": "Send it to <code>/api/upload<\/code>. If an earlier upload is open, its session id rides along in the headers, so the server can drop the old one once this one loads. <code>asJson<\/code> turns any error reply into a message the screen can show."}, {"lines": [83, 84], "text": "Remember the new session id. Every request after this sends it, and that's how the server knows whose data to use."}], "why": "The address is just <code>/api/upload<\/code>, with no server name in front. The page and the API come from the same place, so the browser treats them as one site and no cross-site permissions are needed. Reading the file is left entirely to the server, so there's one place that decides what a valid file is."}, {"code": "route-upload", "title": "Receiving the file", "what": "On the server. The endpoint that takes the upload, checks it, and starts a session for it.", "steps": [{"lines": [79, 83], "text": "The decorator line ties this function to <code>POST /api/upload<\/code>. FastAPI fills in <code>file<\/code> from the upload and <code>x_session_id<\/code> from the <code>X-Session-Id<\/code> header (it turns the underscores into dashes)."}, {"lines": [86, 90], "text": "Refuse anything that isn't named .csv. <code>(file.filename or \"\")<\/code> covers an upload with no name at all."}, {"lines": [92, 102], "text": "Read at most one byte past the 10 MB limit. If that extra byte exists, the file is too big, and the server never had to hold more than 10 MB to find out. The reply is status 413, \"too large\"."}, {"lines": [104, 105], "text": "Hand the bytes to a fresh <code>UploadedDataset<\/code>, which reads, checks and cleans them (the next stop)."}, {"lines": [107, 109], "text": "Only now, with a good file in hand, end the old session and create the new one. If the file had been rejected, the user's existing audit would still be there."}, {"lines": [111, 118], "text": "Reply with the new session id and the counts the upload panel shows."}, {"lines": [120, 125], "text": "Errors. A problem with the file becomes a 400 with a message the user can act on. Anything unexpected goes to <code>internal_error<\/code>, which logs the details and shows only a generic message with a reference code."}], "why": "The cheap checks run first (the name, then the size), so a wrong file is turned away before any real work. Ending the old session last means a bad upload can't cost anyone their work. And unexpected errors never show their details: those can include file paths or data, so they go to the log, with a reference code to match the two up."}]}, {"id": "checked", "short": "Checked and cleaned", "who": "The app · in a second", "title": "Checked and cleaned", "story": "<p>Before anything else, the app reads the file and checks it:<\/p>\n<ul>\n<li><strong>It reads the text correctly<\/strong>, whether the file was saved by Windows or as UTF-8, so accented names keep their accents.<\/li>\n<li><strong>It drops the export's junk rows<\/strong>: a line of dashes and a \"(rows affected)\" footer the system adds every month.<\/li>\n<li><strong>It refuses files it can't use<\/strong>: the wrong columns, no real rows, larger than 10 MB, or not a .csv. The message says what's wrong.<\/li>\n<\/ul>", "visual": "<div class=\"figs\" aria-label=\"The July export, as uploaded\">\n<div><b>4,963<\/b><span>rows in the July file<\/span><\/div>\n<div class=\"k\"><b>4,961<\/b><span>permission rows kept<\/span><\/div>\n<div class=\"r\"><b>2<\/b><span>junk rows dropped<\/span><\/div>\n<\/div>", "why": "An audit over an empty or wrong file would produce a report that says nothing while looking official. Refusing it outright is safer than quietly carrying on.", "fns": [{"code": "read-encoding", "title": "Reading the text", "what": "Turns the file's raw bytes into a table, trying two text encodings in a set order.", "steps": [{"lines": [93, 103], "text": "The docstring, the text in triple quotes, explains the two decisions below. In Python it's the standard place to record why a function works the way it does."}, {"lines": [104, 104], "text": "The two encodings, in order: UTF-8 first (the <code>-sig<\/code> version also strips the invisible marker Excel puts at the start of \"CSV UTF-8\" files), then cp1252, the Windows encoding the monthly export uses."}, {"lines": [105, 108], "text": "Ask pandas to read the bytes as a table. <code>dtype=str<\/code> keeps every value as text, so an id like <code>00123<\/code> doesn't become the number 123."}, {"lines": [109, 110], "text": "If the bytes aren't valid in this encoding, Python raises <code>UnicodeDecodeError<\/code>; <code>continue<\/code> moves on to the next one."}, {"lines": [111, 114], "text": "Neither worked: stop with a message the user can understand."}], "why": "The order is the whole trick. UTF-8 is strict: a Windows file almost always fails it, cleanly. cp1252 is forgiving: it accepts nearly any bytes, so trying it first would \"succeed\" on a UTF-8 file and quietly turn \"é\" into \"Ã©\". Strict first, forgiving second, and both kinds of file come out right."}, {"code": "process-upload", "title": "Checking and keeping it", "what": "Checks the table has what an audit needs, drops the junk rows, and keeps the result in memory.", "steps": [{"lines": [40, 40], "text": "Read the bytes into a table (the function on the left)."}, {"lines": [42, 46], "text": "Compare the file's columns with the required list. A set difference gives exactly the ones missing, and the message names them."}, {"lines": [48, 50], "text": "Keep only rows whose <code>PermissionSource<\/code> is one of the known values. That drops the line of dashes and the \"(rows affected)\" footer, and counts how many went."}, {"lines": [52, 63], "text": "If nothing is left, refuse. The message says whether the file was all junk or simply had no rows."}, {"lines": [65, 68], "text": "Tidy the values, then keep the table on this object. This is the only copy, and it's in memory."}, {"lines": [70, 74], "text": "Return the counts the upload panel shows."}, {"lines": [76, 91], "text": "Errors, from the expected to the unexpected. Known file problems get a specific message. Anything else is logged in full and the user sees a short reference code instead of the details."}], "why": "Junk rows are filtered by keeping known-good values (an allowlist) rather than removing known-bad ones. If the export ever adds a new kind of junk line, it's dropped automatically instead of slipping into the audit."}]}, {"id": "session", "short": "A private session", "who": "The app · for this upload only", "title": "A private session starts", "story": "<p>The upload gets its own <strong>session<\/strong>: a long random key, and the file's data held in the server's memory. The browser sends the key with every request, and only ever sees its own data.<\/p>", "visual": "<div class=\"box\"><span class=\"mono-muted\">session key · kQ3vR8…(43 characters)…xT2<\/span>\n<div class=\"pills\"><span class=\"pill brand\">In memory only<\/span><span class=\"pill\">Never written to disk<\/span><span class=\"pill\">One per upload<\/span><\/div><\/div>", "why": "Two people auditing at the same time can't see or overwrite each other's work. The data holds real staff permissions, so it never touches the server's disk.", "fns": [{"code": "session-store", "title": "The session store", "what": "A small class that holds every open session: a dictionary from session key to that upload's data.", "steps": [{"lines": [19, 20], "text": "The class and what it is, in one line."}, {"lines": [22, 30], "text": "Setup. <code>_sessions<\/code> is the dictionary itself. Each entry stores the data and when it was last used. The lock and the clock are explained in \"why\" below."}, {"lines": [32, 38], "text": "<code>create<\/code>: make a random 43-character key with <code>secrets.token_urlsafe(32)<\/code> and store the data under it with the current time."}, {"lines": [40, 51], "text": "<code>get<\/code>: look a key up. A missing or unknown key returns <code>None<\/code>. A found one has its time refreshed, so a session in use never expires."}, {"lines": [53, 58], "text": "<code>end<\/code>: forget a session now. <code>pop(..., None)<\/code> means an unknown key is quietly ignored rather than an error."}, {"lines": [65, 69], "text": "<code>_sweep<\/code>: remove every session idle longer than 60 minutes. It runs at the start of each create, get and count, under the lock."}], "why": "The <strong>lock<\/strong> matters because the server handles requests at the same time, and two of them changing the dictionary at once could corrupt it; the lock makes them take turns. The <strong>key<\/strong> comes from <code>secrets<\/code>, Python's module for unguessable values. The <strong>clock<\/strong> is <code>time.monotonic<\/code>, which only moves forward even if the server's date is changed, and it can be swapped out so the tests can \"wait\" 60 minutes instantly. Sweeping on every visit, rather than on a timer, means there's no background job to break."}, {"code": "current-session", "title": "Finding the caller's data", "what": "Every endpoint that needs the upload asks for it through this function, so none of them can forget the check.", "steps": [{"lines": [56, 58], "text": "FastAPI reads the <code>X-Session-Id<\/code> header and passes it in. Endpoints use this function with <code>Depends(current_session)<\/code>, and FastAPI runs it before the endpoint itself."}, {"lines": [59, 65], "text": "The docstring records a contract: the frontend looks for these exact words, so they mustn't change."}, {"lines": [66, 66], "text": "Ask the store for this key's data."}, {"lines": [67, 70], "text": "No session, whether the key is missing, wrong or expired: reply 400 \"No data loaded. Please upload a CSV first.\" The frontend recognises the phrase and offers to re-upload."}, {"lines": [71, 71], "text": "Found: the endpoint receives this upload's data and nobody else's."}], "why": "All three ways a session can be missing get the same answer, so a reply never reveals whether a key ever existed. Putting the lookup in one shared function (FastAPI calls this dependency injection) means a new endpoint gets the check just by asking for the data."}]}, {"id": "tree", "short": "The audit tree", "who": "The app · for every staff member", "title": "The audit tree", "story": "<p>Each staff member's rows are arranged into a tree: <strong>where the access comes from<\/strong>, then <strong>which app<\/strong>, then <strong>each permission<\/strong>. Every permission gets an <strong>id<\/strong>, a fingerprint worked out from the row itself. Highlights and decisions are all recorded against these ids.<\/p>", "visual": "<div class=\"tree\" aria-label=\"Example audit tree\">\n<div class=\"l1\">Jordan Lee<\/div>\n<div class=\"l2 direct\">Direct assignment<\/div>\n<div class=\"l3\">Catapult EHR<\/div>\n<div class=\"l4\">Access <span class=\"id\">3f9a1c07b2e4<\/span><\/div>\n<div class=\"l4\">Open Charts <span class=\"id\">8d20e6a1c94f<\/span><\/div>\n<div class=\"l2 position\">Position: Team Lead<\/div>\n<div class=\"l3\">Scheduling<\/div>\n<div class=\"l4\">View Calendar <span class=\"id\">b71e0d53a6c2<\/span><\/div>\n<\/div>", "whyLabel": "Why fingerprints", "why": "The same file always produces the same ids. If the server restarts mid-audit, uploading the same file again brings back every selection and decision still open in the browser.", "fns": [{"code": "leaf-id", "title": "A permission's id", "what": "Works out the 12-character id for one permission from the facts that describe it.", "steps": [{"lines": [145, 153], "text": "The inputs: who, where the access comes from, which position, which app, which permission, and an occurrence number. <code>@staticmethod<\/code> means it uses only these inputs, nothing stored on the object."}, {"lines": [160, 160], "text": "Join them into one line of text with <code>|<\/code> between, so \"Jordan Lee|Direct Assignment||Catapult EHR|Access|0\"."}, {"lines": [161, 161], "text": "Run that text through md5, which turns any text into a fixed jumble of hex characters, and keep the first 12. The same text always gives the same jumble."}], "why": "An id from a counter (1, 2, 3…) would change if rows moved; an id from the row's own contents doesn't, which is what lets a re-upload line up with decisions already made. md5 is broken for security, but here it's only a fingerprint and nothing depends on it being hard to fake. 12 hex characters give about 280 trillion possibilities, far more than enough to keep 5,000 rows apart."}, {"code": "audit-group", "title": "Building one group", "what": "Builds one branch of the tree: the direct grants, or one position, split into apps.", "steps": [{"lines": [172, 174], "text": "Go through each app in this group, in alphabetical order, taking only that app's rows."}, {"lines": [175, 179], "text": "Go through its permissions, also sorted. <code>seen<\/code> counts how many times each name has appeared, so an exact duplicate row gets occurrence 1, the next 2, and so on."}, {"lines": [180, 188], "text": "Make the permission's record: its id (from the function on the left) plus the details the screens show."}, {"lines": [189, 189], "text": "Add the finished app to the list."}, {"lines": [191, 197], "text": "Return the group: whether it's direct or a position, its label, and its apps."}], "why": "The sorting isn't cosmetic. It fixes the order, so duplicates get the same occurrence numbers every time and therefore the same ids. Without it, two uploads of the same file could number duplicates differently."}]}, {"id": "setup", "short": "IT setup", "who": "IT · step 1 on screen", "title": "IT setup", "story": "<p>IT names the department and month, then picks the staff to review. They can search by name, filter by position, or search for a permission to find everyone who holds it.<\/p><p>Anything the manager should look at closely gets a <strong>highlight<\/strong>, with an optional note:<\/p>", "visual": "<div class=\"hl-row\"><div><strong>Open Charts<\/strong><br><span class=\"note\">Catapult EHR · Direct Assignment<\/span><\/div>\n<span class=\"pill flag\">★ Highlighted<\/span>\n<span class=\"n2\">IT: Granted for a temporary project; confirm it's still needed.<\/span><\/div>", "whyLabel": "Where highlights go", "why": "A highlight follows the permission through the manager's review, the report and the printable packet, because it's attached to the permission's id.", "fns": [{"code": "highlight", "title": "Highlighting a permission", "what": "In the browser. Part of the reducer: the one function that makes every change to the audit's on-screen state.", "steps": [{"lines": [184, 185], "text": "On \"toggle highlight\", start from a copy of the current highlights."}, {"lines": [186, 187], "text": "Already highlighted? Remove it. Otherwise add it with an empty note."}, {"lines": [188, 188], "text": "Return a new state with the new highlights; everything else is carried over unchanged."}, {"lines": [190, 191], "text": "On \"highlight note\", store the typed note against the permission's id."}], "why": "The reducer never edits the existing state; it always returns a new one. React notices a change by seeing a new object, so editing in place could leave the screen showing stale highlights. Keeping all changes in one reducer also means there's one place to read to know everything the setup step can do."}]}, {"id": "review", "short": "Manager audit", "who": "Manager · step 2 on screen", "title": "Manager audit", "story": "<p>The manager marks each permission <strong>Keep<\/strong> or <strong>Revoke<\/strong>. One rule applies automatically: <strong>revoking an app's \"Access\" revokes the rest of that app<\/strong> and locks it, because without access the other permissions mean nothing.<\/p><p>Try it. Revoke \"Access\" below:<\/p>", "visual": "\n<div class=\"demo\" id=\"demo\">\n  <div class=\"dg\" data-label=\"direct assignment\">\n    <h3>Catapult EHR <small>· Direct assignment<\/small><\/h3>\n    <div class=\"perm\" data-perm=\"d1\" data-name=\"Access\"><span><span class=\"name\">Access<\/span><\/span><span class=\"seg\"><\/span><span class=\"lock\" hidden><\/span><\/div>\n    <div class=\"perm\" data-perm=\"d2\" data-name=\"Open Charts\"><span><span class=\"name\">Open Charts<\/span><span class=\"lock\" hidden>Locked: Access is revoked<\/span><\/span><span class=\"seg\"><\/span><\/div>\n    <div class=\"perm\" data-perm=\"d3\" data-name=\"Edit Orders\"><span><span class=\"name\">Edit Orders<\/span><span class=\"lock\" hidden>Locked: Access is revoked<\/span><\/span><span class=\"seg\"><\/span><\/div>\n  <\/div>\n  <div class=\"dg\" data-label=\"position Team Lead\">\n    <h3>Catapult EHR <small>· Position: Team Lead<\/small><\/h3>\n    <div class=\"perm\" data-perm=\"p1\" data-name=\"Access\"><span><span class=\"name\">Access<\/span><\/span><span class=\"seg\"><\/span><span class=\"lock\" hidden><\/span><\/div>\n    <div class=\"perm\" data-perm=\"p2\" data-name=\"Print Labels\"><span><span class=\"name\">Print Labels<\/span><span class=\"lock\" hidden>Locked: Access is revoked<\/span><\/span><span class=\"seg\"><\/span><\/div>\n  <\/div>\n  <div class=\"demo-foot\" aria-live=\"polite\">\n    <span class=\"pill keep\" id=\"c-keep\">0 keep<\/span>\n    <span class=\"pill revoke\" id=\"c-revoke\">0 revoke<\/span>\n    <span class=\"pill\" id=\"c-none\">5 undecided<\/span>\n    <button type=\"button\" class=\"reset\" id=\"reset\">Reset<\/button>\n  <\/div>\n<\/div>", "whyLabel": "Within one group only", "why": "Revoking the direct grant leaves the Team Lead group alone. Access that comes with a position is removed a different way, so the rule never marks it as gone while the person still has it through their job.", "demo": true, "fns": [{"code": "apply-decision", "title": "Applying a click", "what": "In the browser. Runs on every Keep or Revoke click and returns the updated decisions.", "steps": [{"lines": [50, 55], "text": "The inputs: the tree, the decisions so far, which permission was clicked, and whether it was Keep or Revoke."}, {"lines": [56, 56], "text": "Build an index so any permission can be looked up by id, along with the other permissions in its app and group."}, {"lines": [57, 58], "text": "Clicking the choice that's already set clears it; otherwise the click sets it."}, {"lines": [60, 63], "text": "Make a new decisions map with this one change. The <code>...<\/code> copies everything else across."}, {"lines": [65, 70], "text": "The Access rule: if this was a Revoke on \"Access\", mark every permission in the same app and group as revoked too."}, {"lines": [71, 71], "text": "Return the new map; the screen redraws from it."}], "why": "This copy of the rule exists only so the screen responds instantly. The server applies the same rule itself at the end (stop 7), and that's the one the report trusts. The function takes everything it needs as inputs and changes nothing outside itself, which keeps it easy to test and to compare with the server's version."}, {"code": "compute-locked", "title": "Which buttons lock", "what": "In the browser. Works out which permissions to lock, from the decisions alone.", "steps": [{"lines": [92, 92], "text": "Start with an empty set of locked ids."}, {"lines": [93, 95], "text": "Walk the tree: every staff member, every group, every app."}, {"lines": [96, 97], "text": "Find the app's \"Access\" permission. Apps without one are skipped."}, {"lines": [98, 102], "text": "If Access is revoked, lock every other permission in that app."}, {"lines": [106, 106], "text": "Return the set; a locked permission's buttons are disabled."}], "why": "Locks are worked out from the decisions every time rather than stored separately. Two stored lists could fall out of step; one list and a rule can't."}]}, {"id": "report", "short": "The report", "who": "The app · on Finalize", "title": "The report", "story": "<p>Finalize sends every decision to the server. The server applies the Access rule again itself, then counts and writes the completed report: every staff member's access with each decision, highlight and note.<\/p>", "visual": "<div class=\"figs\" aria-label=\"Example report counts\">\n<div class=\"k\"><b>53<\/b><span>Kept<\/span><\/div>\n<div class=\"r\"><b>176<\/b><span>Revoked<\/span><\/div>\n<div><b>221<\/b><span>No decision<\/span><\/div>\n<\/div>", "whyLabel": "The server is the record", "why": "The screen's copy of the rule only makes clicks feel instant. The report's numbers always come from the server, and two separate checks confirm it counts the way it should.", "fns": [{"code": "effective", "title": "The final decisions", "what": "On the server. Turns the manager's clicks into the final answer for every permission, applying the Access rule.", "steps": [{"lines": [29, 36], "text": "The docstring states the rule and its limit (same staff member and group only), and points to where the choice is explained."}, {"lines": [39, 42], "text": "Walk the tree: every staff member, group and app."}, {"lines": [44, 48], "text": "Is this app's Access revoked? <code>any(...)<\/code> is true if at least one permission is named \"access\" (ignoring case and spaces) and marked revoke."}, {"lines": [50, 53], "text": "If so, every permission in the app is revoked, whatever was clicked."}, {"lines": [54, 57], "text": "Otherwise use the manager's choice, and anything without a choice counts as \"none\"."}, {"lines": [59, 59], "text": "Return one final answer per permission id; the counts and the report are built from this."}], "why": "The server doesn't take the browser's word for the outcome: it gets the raw clicks and works the result out itself. The <code>or {}<\/code> pieces make missing or empty entries harmless, so a permission nobody touched comes out as \"none\" rather than an error."}]}, {"id": "documents", "short": "What comes out", "who": "Step 3 on screen", "title": "What comes out", "story": "<p>Three things leave the app, all built in memory and sent straight to the browser.<\/p>", "visual": "<div class=\"tiles\">\n<div class=\"tile\"><h3>The report<\/h3><p>Read-only, opens in the browser and can be downloaded. The record of the audit.<\/p><\/div>\n<div class=\"tile\"><h3>Review packet<\/h3><p>A printable page per staff member, with Keep and Revoke boxes and highlights marked.<\/p><\/div>\n<div class=\"tile\"><h3>CSV export<\/h3><p>The selected staff's rows, with department and date added.<\/p><\/div>\n<\/div>", "whyLabel": "Nothing saved", "why": "None of the three is saved on the server. Once downloaded, they're the only copies.", "fns": [{"code": "export", "title": "The CSV export", "what": "On the server. Builds the export file in memory and makes it safe to open in Excel.", "steps": [{"lines": [24, 26], "text": "Copy the selected rows and add the department and audit date columns."}, {"lines": [28, 34], "text": "Any text starting with <code>= + - @<\/code>, a tab or a carriage return gets a <code>'<\/code> in front, so Excel shows it as text instead of running it as a formula."}, {"lines": [36, 39], "text": "Build the filename. Anything other than letters, digits, <code>_<\/code> and <code>-<\/code> in the department becomes <code>_<\/code>."}, {"lines": [41, 43], "text": "Turn the table into CSV bytes, in memory, and return them with the name."}], "why": "The formula step guards against \"CSV injection\": a value like <code>=HYPERLINK(...)<\/code> from the source system would otherwise run when someone opens the file. The filename is cleaned because it travels in an HTTP header, where odd characters could break the response."}]}, {"id": "ends", "short": "The session ends", "who": "Automatically", "title": "The session ends", "story": "<p>A session ends when the user clicks <strong>Start a new audit<\/strong>, uploads another file, or leaves it idle for <strong>60 minutes<\/strong>. Then the server forgets it.<\/p>", "visual": "<div class=\"two\">\n<div><h3>Left on the server<\/h3><p>Nothing. No file, no database, no copy of the upload.<\/p><\/div>\n<div class=\"ok\"><h3>Kept by the people involved<\/h3><p>Whatever they downloaded: the report, the packet, the export.<\/p><\/div>\n<\/div>", "why": "With nothing stored, there's nothing to leak, back up or clean up later.", "fns": [{"code": "end-session-call", "title": "Start a new audit", "what": "In the browser. Runs when the user clicks \"Start a new audit\".", "steps": [{"lines": [103, 105], "text": "Forget the session id in the browser first. If there wasn't one, stop."}, {"lines": [106, 109], "text": "Ask the server to drop it. If that fails (say, the network blipped), ignore it."}], "why": "Ignoring a failure here is safe because the server's 60-minute sweep ends the session anyway. The browser forgets its id first, so even then nothing on screen can reach the old data."}, {"code": "end-session", "title": "Forgetting a session", "what": "On the server. The endpoint the button above calls.", "steps": [{"lines": [244, 245], "text": "Tie the function to <code>DELETE /api/session<\/code> and read the session id from the header."}, {"lines": [247, 248], "text": "Tell the store to forget it, and say it worked."}], "why": "It always says it worked, even for an unknown id: the goal is \"this session is gone\", and that's true either way. It also doesn't go through <code>current_session<\/code>, so an already-expired session doesn't produce an error."}]}, {"id": "around", "short": "Around the app", "who": "How it reaches people", "title": "Around the app", "story": "<p>The whole app ships as one container. A secure front door sits in front of it, and everything a user does passes through that door.<\/p>", "visual": "<div class=\"chain\">\n<div class=\"hop\"><h3>Browser<\/h3><p>IT and managers use the app in a normal web browser.<\/p><\/div>\n<div class=\"arrow\" aria-hidden=\"true\">→<\/div>\n<div class=\"hop\"><h3>Secure front door<\/h3><p>Encrypts the connection (HTTPS): a load balancer on AWS, or nginx on a virtual machine. Sign-in will live here.<\/p><\/div>\n<div class=\"arrow\" aria-hidden=\"true\">→<\/div>\n<div class=\"hop ct\"><h3>The container<\/h3><span class=\"in\">Web server: the pages<\/span><span class=\"in\">Backend: sessions, tree, report<\/span><\/div>\n<\/div>\n<div class=\"pills\"><span class=\"pill\">Only the front door can reach it<\/span><span class=\"pill\">Exactly one copy<\/span><span class=\"pill\">1 GB memory, no swap<\/span><span class=\"pill\">A restart ends every session<\/span><\/div>", "whyLabel": "Phase two", "why": "There's no sign-in yet, so the app must only be reachable from a restricted network. Sign-in, a record of finalized audits and the hosting choice come next.", "fns": [{"code": "nginx-api", "title": "The web server's /api rule", "what": "Inside the container, nginx serves the pages and passes every <code>/api/<\/code> request to the backend.", "steps": [{"lines": [77, 80], "text": "Any address starting <code>/api/<\/code> goes to the backend on port 8000, path unchanged."}, {"lines": [85, 92], "text": "Headers that tell the backend about the original request. <code>X-Forwarded-For<\/code> is replaced, not added to, so a visitor can't slip in a made-up address."}, {"lines": [94, 96], "text": "Accept uploads up to 11 MB, just above the backend's 10 MB limit, so the backend is the one giving the friendly \"too large\" message."}, {"lines": [98, 100], "text": "Hold the whole upload in memory rather than a temporary file."}, {"lines": [102, 106], "text": "Same for replies: never spill a report or export to disk."}], "why": "nginx writes large requests and replies to temporary files by default. Those would be copies of staff data on disk, so these settings turn that off, sized to the app's own limits."}, {"code": "compose-prod", "title": "The container's limits", "what": "From the production compose file: how the container is run on a host.", "steps": [{"lines": [18, 22], "text": "Publish port 8080 on the host's loopback address only (<code>127.0.0.1<\/code>), so only something on the same machine, the front door, can reach it."}, {"lines": [23, 24], "text": "If the container stops, start it again."}, {"lines": [25, 29], "text": "1 GB of memory and the same total with swap, which means no swap at all."}, {"lines": [30, 31], "text": "Allow 15 seconds for a clean stop."}], "why": "Swap is the host borrowing disk as extra memory: it would write uploads to disk, so it's ruled out. A hard memory limit means running out restarts this container rather than the host picking something else to kill."}]}], "code": {"upload-call": {"file": "frontend/src/services/api.ts", "start": 75, "lang": "typescript", "code": "  async upload(file) {\n    // The file's bytes as they are: the backend works out the encoding.\n    const fd = new FormData()\n    fd.append('file', file)\n    // The old id lets the server drop the old session once this one loads.\n    const up = await asJson<UploadResponse>(\n      await fetch('/api/upload', { method: 'POST', body: fd, headers: sessionHeaders() }),\n    )\n    sessionId = up.session_id\n    return up\n  },"}, "route-upload": {"file": "backend/app/api/routes.py", "start": 79, "lang": "python", "code": "@router.post(\"/upload\", response_model=UploadResponse)\nasync def upload_csv(\n    file: UploadFile = File(...),\n    x_session_id: Optional[str] = Header(None),\n):\n    \"\"\"Load the monthly export and start a new session for it.\"\"\"\n    try:\n        if not (file.filename or \"\").lower().endswith('.csv'):\n            raise HTTPException(\n                status_code=400,\n                detail=\"File must be a CSV (.csv extension)\"\n            )\n\n        # One byte past the limit is enough to know it's too big.\n        content = await file.read(MAX_UPLOAD_SIZE + 1)\n        if len(content) > MAX_UPLOAD_SIZE:\n            raise HTTPException(\n                status_code=413,\n                detail=(\n                    f\"File is too large (limit {MAX_UPLOAD_SIZE // (1024 * 1024)} MB). \"\n                    \"The monthly export is normally well under 1 MB — check \"\n                    \"this is the right file.\"\n                ),\n            )\n\n        dataset = UploadedDataset()\n        result = await dataset.process_upload(content, file.filename)\n\n        # Only now, after a successful parse: a failed upload keeps the old session.\n        sessions.end(x_session_id)\n        session_id = sessions.create(dataset)\n\n        return UploadResponse(\n            success=True,\n            session_id=session_id,\n            filename=file.filename,\n            row_count=result[\"row_count\"],\n            rows_dropped=result[\"rows_dropped\"],\n            source_breakdown=result[\"source_breakdown\"],\n        )\n\n    except InvalidCSVError as e:\n        raise HTTPException(status_code=400, detail=str(e))\n    except HTTPException:\n        raise\n    except Exception:\n        raise internal_error(\"Error processing file\")"}, "read-encoding": {"file": "backend/app/services/uploaded_dataset.py", "start": 93, "lang": "python", "code": "    def _read_csv_with_encoding(self, file_content: bytes) -> pd.DataFrame:\n        \"\"\"\n        Parse the CSV as UTF-8, or else as cp1252 (what the monthly export uses).\n\n        UTF-8 must be tried first: cp1252 accepts almost any byte, so it would\n        \"succeed\" on a UTF-8 file and garble its accents. \"utf-8-sig\" also\n        strips the byte-order mark Excel adds to \"CSV UTF-8\" files.\n\n        dtype=str keeps ids like \"00123\" as text. The text \"NULL\" still reads\n        as blank, which direct assignments' PositionName relies on.\n        \"\"\"\n        for encoding in (\"utf-8-sig\", \"cp1252\"):\n            try:\n                return pd.read_csv(\n                    io.BytesIO(file_content), encoding=encoding, dtype=str\n                )\n            except UnicodeDecodeError:\n                continue\n        raise InvalidCSVError(\n            \"Could not read the file with cp1252 or UTF-8 encoding. \"\n            \"Please check the file came from the usual report export.\"\n        )"}, "process-upload": {"file": "backend/app/services/uploaded_dataset.py", "start": 32, "lang": "python", "code": "    async def process_upload(self, file_content: bytes, filename: str) -> Dict[str, Any]:\n        \"\"\"\n        Read and check the upload and keep it. Returns its row counts.\n\n        Raises InvalidCSVError, with a message fit to show, if the file can't\n        be used.\n        \"\"\"\n        try:\n            df = self._read_csv_with_encoding(file_content)\n\n            missing_cols = set(REQUIRED_COLUMNS) - set(df.columns)\n            if missing_cols:\n                raise InvalidCSVError(\n                    f\"Missing required columns: {', '.join(missing_cols)}\"\n                )\n\n            rows_before = len(df)\n            df = df[df[\"PermissionSource\"].isin(VALID_PERMISSION_SOURCES)].copy()\n            rows_dropped = rows_before - len(df)\n\n            # An audit over nothing would produce a report attesting to nothing.\n            if len(df) == 0:\n                raise InvalidCSVError(\n                    \"No permission rows found in this file\"\n                    + (\n                        f\" — all {rows_dropped} row(s) were export noise \"\n                        \"(divider or '(N rows affected)' footer). \"\n                        if rows_dropped\n                        else \" — it has the right columns but no data rows. \"\n                    )\n                    + \"Check that this is the full report export.\"\n                )\n\n            df = self._clean_dataframe(df)\n\n            self.current_df = df\n            self.filename = filename\n\n            return {\n                \"row_count\": len(df),\n                \"rows_dropped\": rows_dropped,\n                \"source_breakdown\": self._get_source_breakdown(df),\n            }\n\n        except InvalidCSVError:\n            raise\n        except pd.errors.EmptyDataError:\n            raise InvalidCSVError(\"CSV file is empty\")\n        except pd.errors.ParserError as e:\n            # pandas' parser messages describe the file's shape (e.g. \"Expected\n            # 7 fields in line 12, saw 8\"): safe and useful to show.\n            raise InvalidCSVError(f\"Error parsing CSV: {str(e)}\")\n        except Exception:\n            # Anything else is unexpected: keep the details out of the message.\n            ref = secrets.token_hex(3)\n            logger.exception(\"Unexpected error processing CSV [ref %s]\", ref)\n            raise InvalidCSVError(\n                \"Could not process this CSV. Check that it's the usual report \"\n                f\"export. Reference: {ref}\"\n            )"}, "session-store": {"file": "backend/app/services/session_service.py", "start": 19, "lang": "python", "code": "class SessionStore:\n    \"\"\"In-memory map of session id -> that session's UploadedDataset.\"\"\"\n\n    def __init__(\n        self,\n        idle_seconds: int = SESSION_IDLE_MINUTES * 60,\n        clock: Callable[[], float] = time.monotonic,\n    ):\n        self._idle_seconds = idle_seconds\n        self._clock = clock  # swappable so tests can fast-forward time\n        self._lock = threading.Lock()\n        self._sessions: Dict[str, Tuple[UploadedDataset, float]] = {}\n\n    def create(self, dataset: UploadedDataset) -> str:\n        \"\"\"Store a freshly loaded dataset and return its new session id.\"\"\"\n        session_id = secrets.token_urlsafe(32)\n        with self._lock:\n            self._sweep()\n            self._sessions[session_id] = (dataset, self._clock())\n        return session_id\n\n    def get(self, session_id: Optional[str]) -> Optional[UploadedDataset]:\n        \"\"\"Return the session's dataset (and mark it active), or None.\"\"\"\n        if not session_id:\n            return None\n        with self._lock:\n            self._sweep()\n            entry = self._sessions.get(session_id)\n            if entry is None:\n                return None\n            dataset, _ = entry\n            self._sessions[session_id] = (dataset, self._clock())\n            return dataset\n\n    def end(self, session_id: Optional[str]) -> None:\n        \"\"\"Forget a session immediately. Unknown ids are ignored.\"\"\"\n        if not session_id:\n            return\n        with self._lock:\n            self._sessions.pop(session_id, None)\n\n    def count(self) -> int:\n        with self._lock:\n            self._sweep()\n            return len(self._sessions)\n\n    def _sweep(self) -> None:\n        \"\"\"Drop sessions idle longer than the limit. Caller holds the lock.\"\"\"\n        cutoff = self._clock() - self._idle_seconds\n        for sid in [s for s, (_, last) in self._sessions.items() if last < cutoff]:\n            del self._sessions[sid]"}, "current-session": {"file": "backend/app/api/routes.py", "start": 56, "lang": "python", "code": "def current_session(\n    x_session_id: Optional[str] = Header(None),\n) -> UploadedDataset:\n    \"\"\"\n    The caller's dataset, from the X-Session-Id header.\n\n    Missing, unknown and expired ids all get the same 400 \"No data loaded\". The\n    frontend's isSessionLost() matches that phrase to offer re-upload recovery,\n    so keep the wording.\n    \"\"\"\n    dataset = sessions.get(x_session_id)\n    if dataset is None:\n        raise HTTPException(\n            status_code=400, detail=\"No data loaded. Please upload a CSV first.\"\n        )\n    return dataset"}, "leaf-id": {"file": "backend/app/services/uploaded_dataset.py", "start": 145, "lang": "python", "code": "    @staticmethod\n    def _leaf_id(\n        staff_name: str,\n        source: str,\n        position: str,\n        domain: str,\n        permission: str,\n        occurrence: int,\n    ) -> str:\n        \"\"\"\n        A stable fingerprint for one permission: the same row always gets the\n        same id, which is what lets a re-upload restore an audit. `occurrence`\n        tells exact duplicate rows apart. md5 is used as a fingerprint here,\n        not for security.\n        \"\"\"\n        raw = f\"{staff_name}|{source}|{position}|{domain}|{permission}|{occurrence}\"\n        return hashlib.md5(raw.encode(\"utf-8\")).hexdigest()[:12]"}, "audit-group": {"file": "backend/app/services/uploaded_dataset.py", "start": 163, "lang": "python", "code": "    def _audit_group(\n        self,\n        staff_name: str,\n        source: str,\n        label: str,\n        position: Optional[str],\n        df: pd.DataFrame,\n    ) -> Dict[str, Any]:\n        \"\"\"One group (the direct grants, or one position), split into apps.\"\"\"\n        apps: List[Dict[str, Any]] = []\n        for domain in sorted(df[\"DomainName\"].unique()):\n            dom_df = df[df[\"DomainName\"] == domain]\n            permissions: List[Dict[str, Any]] = []\n            seen: Dict[str, int] = {}\n            for perm in sorted(dom_df[\"PermissionName\"].tolist()):\n                occ = seen.get(perm, 0)\n                seen[perm] = occ + 1\n                permissions.append({\n                    \"id\": self._leaf_id(\n                        staff_name, source, position or \"\", domain, perm, occ\n                    ),\n                    \"name\": perm,\n                    \"domain\": domain,\n                    \"source\": source,\n                    \"position\": position or \"\",\n                })\n            apps.append({\"domain\": domain, \"permissions\": permissions})\n\n        return {\n            \"key\": \"direct\" if source == \"Direct Assignment\" else \"position\",\n            \"label\": label,\n            \"position\": position,\n            \"source\": source,\n            \"apps\": apps,\n        }"}, "highlight": {"file": "frontend/src/state/AuditContext.tsx", "start": 184, "lang": "typescript", "code": "    case 'TOGGLE_HIGHLIGHT': {\n      const next = { ...state.highlights }\n      if (action.permId in next) delete next[action.permId]\n      else next[action.permId] = ''\n      return { ...state, highlights: next }\n    }\n    case 'HIGHLIGHT_NOTE':\n      return { ...state, highlights: { ...state.highlights, [action.permId]: action.note } }"}, "apply-decision": {"file": "frontend/src/lib/cascade.ts", "start": 50, "lang": "typescript", "code": "export function applyDecision(\n  people: AuditPerson[],\n  decisions: DecisionMap,\n  permId: string,\n  value: 'keep' | 'revoke',\n): DecisionMap {\n  const idx = indexTree(people)\n  const current = decisions[permId]?.decision ?? null\n  const next = current === value ? null : value\n\n  const out: DecisionMap = {\n    ...decisions,\n    [permId]: { ...decisions[permId], decision: next },\n  }\n\n  const entry = idx.get(permId)\n  if (entry && next === 'revoke' && isAccess(entry.name)) {\n    for (const sib of entry.appPermIds) {\n      out[sib] = { ...out[sib], decision: 'revoke' }\n    }\n  }\n  return out\n}"}, "compute-locked": {"file": "frontend/src/lib/cascade.ts", "start": 88, "lang": "typescript", "code": "export function computeLocked(\n  people: AuditPerson[],\n  decisions: DecisionMap,\n): Set<string> {\n  const locked = new Set<string>()\n  for (const person of people) {\n    for (const group of person.groups) {\n      for (const app of group.apps) {\n        const access = app.permissions.find((p) => isAccess(p.name))\n        if (!access) continue\n        if (decisions[access.id]?.decision === 'revoke') {\n          for (const perm of app.permissions) {\n            if (!isAccess(perm.name)) locked.add(perm.id)\n          }\n        }\n      }\n    }\n  }\n  return locked\n}"}, "effective": {"file": "backend/app/services/report_service.py", "start": 24, "lang": "python", "code": "    @staticmethod\n    def _effective_decisions(\n        people: List[Dict[str, Any]],\n        decisions: Dict[str, Dict[str, Any]],\n    ) -> Dict[str, str]:\n        \"\"\"\n        The final decision for every permission id: 'keep', 'revoke' or 'none'.\n\n        The manager's choices, except that a revoked \"Access\" revokes the rest\n        of its app. Only within the same staff member and group: a direct grant\n        and access through a position stay separate (\"Path A\" in\n        docs/decisions.md).\n        \"\"\"\n        effective: Dict[str, str] = {}\n\n        for person in people:\n            for group in person.get(\"groups\", []):\n                for app in group.get(\"apps\", []):\n                    perms = app.get(\"permissions\", [])\n\n                    access_revoked = any(\n                        p[\"name\"].strip().lower() == ACCESS_PERMISSION\n                        and (decisions.get(p[\"id\"], {}) or {}).get(\"decision\") == \"revoke\"\n                        for p in perms\n                    )\n\n                    for p in perms:\n                        raw = (decisions.get(p[\"id\"], {}) or {}).get(\"decision\")\n                        if access_revoked:\n                            effective[p[\"id\"]] = \"revoke\"\n                        elif raw in (\"keep\", \"revoke\"):\n                            effective[p[\"id\"]] = raw\n                        else:\n                            effective[p[\"id\"]] = \"none\"\n\n        return effective"}, "export": {"file": "backend/app/services/export_service.py", "start": 14, "lang": "python", "code": "    @staticmethod\n    def create_export(\n        df: pd.DataFrame,\n        department: str,\n        audit_date: Optional[str] = None\n    ) -> Tuple[bytes, str]:\n        \"\"\"\n        The export as (csv_bytes, filename). Built in memory and never written\n        to disk. audit_date defaults to today.\n        \"\"\"\n        export_df = df.copy()\n        export_df['Department'] = department\n        export_df['AuditDate'] = audit_date or datetime.now().strftime('%Y-%m-%d')\n\n        # Excel runs a cell that starts with = + - @ (or a tab or carriage\n        # return) as a formula when the file is opened. Values come from the\n        # source system and the department box, so prefix those with ' to\n        # make Excel show them as plain text.\n        export_df = export_df.map(\n            lambda v: \"'\" + v if isinstance(v, str) and v.startswith(FORMULA_STARTS) else v\n        )\n\n        # Filename goes into an HTTP header, so allow only safe characters.\n        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')\n        safe_dept_name = re.sub(r'[^A-Za-z0-9_-]+', '_', department).strip('_') or 'audit'\n        filename = f\"Audit_{safe_dept_name}_{timestamp}.csv\"\n\n        csv_bytes = export_df.to_csv(index=False).encode('utf-8')\n\n        return csv_bytes, filename"}, "end-session": {"file": "backend/app/api/routes.py", "start": 244, "lang": "python", "code": "@router.delete(\"/session\")\nasync def end_session(x_session_id: Optional[str] = Header(None)):\n    \"\"\"Forget the caller's session now (\"Start a new audit\").\"\"\"\n    sessions.end(x_session_id)\n    return {\"success\": True}"}, "end-session-call": {"file": "frontend/src/services/api.ts", "start": 102, "lang": "typescript", "code": "  async endSession() {\n    const id = sessionId\n    sessionId = null\n    if (!id) return\n    // Best effort: the server drops it after 60 idle minutes anyway.\n    try {\n      await fetch('/api/session', { method: 'DELETE', headers: { 'X-Session-Id': id } })\n    } catch { /* ignore */ }\n  },"}, "nginx-api": {"file": "deploy/nginx.conf", "start": 77, "lang": "nginx", "code": "        location /api/ {\n            # No trailing slash: the backend's routes include /api, so the path\n            # must pass through unchanged.\n            proxy_pass http://127.0.0.1:8000;\n\n            # Access control belongs at the front proxy, not here: see the\n            # marked block in deploy/host-nginx.conf.example.\n\n            proxy_set_header Host              $host;\n            proxy_set_header X-Real-IP         $remote_addr;\n            # Replaced, never appended, so the backend can't receive an address\n            # the client made up. This is the front proxy's address; nothing\n            # reads visitor addresses today.\n            proxy_set_header X-Forwarded-For   $remote_addr;\n            proxy_set_header X-Forwarded-Proto $forwarded_proto;\n            proxy_set_header X-Forwarded-Host  $forwarded_host;\n\n            # Just above the backend's 10 MB limit (MAX_UPLOAD_SIZE), so the\n            # backend gives the \"too large\" message for anything near it.\n            client_max_body_size 11m;\n\n            # Uploads hold permission data: keep the whole body in memory\n            # rather than a temp file.\n            client_body_buffer_size 11m;\n\n            # Exports and reports too: never spill a response to a temp file.\n            # nginx holds what fits in its small buffers and otherwise makes\n            # the backend wait for the browser, which is fine at our sizes but\n            # would hold connections open with much larger responses.\n            proxy_max_temp_file_size 0;\n        }"}, "compose-prod": {"file": "docker-compose.prod.yml", "start": 18, "lang": "yaml", "code": "    ports:\n      # Loopback only: the container trusts the headers the front proxy sends,\n      # so nothing else may reach 8080. A containerized front proxy should join\n      # this compose network and use app:8080 rather than widening this.\n      - \"127.0.0.1:8080:8080\"\n    # The container exits if nginx or the backend stops; this brings it back.\n    restart: unless-stopped\n    # Equal limits mean no swap, so the app's memory never reaches the host's\n    # disk. Running out restarts this container rather than the host choosing\n    # what to kill.\n    mem_limit: 1g\n    memswap_limit: 1g\n    # supervisord gives each process up to 5s to stop.\n    stop_grace_period: 15s"}}}</script>
 <script>
 (function () {
-  // Code locations toggle, remembered per viewer where storage is allowed.
-  var box = document.getElementById('show-code');
-  function apply(on) { document.body.classList.toggle('show-code', on); box.checked = on; }
-  try { apply(localStorage.getItem('show-code') === '1'); } catch (e) { apply(false); }
-  box.addEventListener('change', function () {
-    apply(box.checked);
-    try { localStorage.setItem('show-code', box.checked ? '1' : '0'); } catch (e) {}
+  var DATA = JSON.parse(document.getElementById('map-data').textContent);
+  var STOPS = DATA.stops, CODE = DATA.code;
+  var current = 0, currentFn = null, currentStep = 0;
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return s.replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  /* ---- timeline ---- */
+  var track = $('track');
+  STOPS.forEach(function (s, i) {
+    var li = document.createElement('li');
+    li.innerHTML = '<button type="button" class="stop-btn"><span class="dot">' + (i + 1) + '</span>' +
+      '<span class="t">' + esc(s.short) + '</span><span class="w">' + esc(s.who) + '</span></button>';
+    li.querySelector('button').addEventListener('click', function () { go(i); });
+    track.appendChild(li);
+  });
+  $('prev').addEventListener('click', function () { go(current - 1); });
+  $('next').addEventListener('click', function () { go(current + 1); });
+  document.addEventListener('keydown', function (e) {
+    if (e.target.closest('input, textarea, select')) return;
+    if (e.key === 'ArrowRight') { go(current + 1); }
+    if (e.key === 'ArrowLeft') { go(current - 1); }
   });
 
-  // The Access rule, scoped to one group, as the app applies it.
-  var state = {};
-  var groups = Array.prototype.slice.call(document.querySelectorAll('#demo .demo-group'));
-  function permsOf(group) { return Array.prototype.slice.call(group.querySelectorAll('.perm')); }
-  function isAccess(el) { return el.querySelector('.name').firstChild.textContent.trim() === 'Access'; }
-
-  groups.forEach(function (group) {
-    permsOf(group).forEach(function (el) {
-      var id = el.dataset.perm;
-      ['Keep', 'Revoke'].forEach(function (label) {
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.textContent = label;
-        b.className = label === 'Keep' ? 'k' : 'r';
-        b.setAttribute('aria-pressed', 'false');
-        b.setAttribute('aria-label', label + ' ' + el.querySelector('.name').textContent.trim() + ' (' + group.querySelector('h3 small').textContent.replace('·', '').trim() + ')');
-        b.addEventListener('click', function () { decide(group, el, label.toLowerCase()); });
-        el.querySelector('.seg').appendChild(b);
-      });
-      state[id] = null;
+  function go(i, keepHash) {
+    if (i < 0 || i >= STOPS.length) return;
+    current = i; currentFn = null; currentStep = 0;
+    Array.prototype.forEach.call(track.children, function (li, k) {
+      li.classList.toggle('done', k < i);
+      li.classList.toggle('current', k === i);
+      li.querySelector('button').setAttribute('aria-current', k === i ? 'step' : 'false');
     });
-  });
-
-  function decide(group, el, value) {
-    var id = el.dataset.perm;
-    var next = state[id] === value ? null : value;
-    state[id] = next;
-    if (isAccess(el) && next === 'revoke') {
-      permsOf(group).forEach(function (p) { state[p.dataset.perm] = 'revoke'; });
-    }
-    render();
+    var btn = track.children[i];
+    var wrap = $('track-wrap');
+    wrap.scrollLeft = Math.max(0, btn.offsetLeft - (wrap.clientWidth - btn.offsetWidth) / 2);
+    $('prev').disabled = i === 0;
+    $('next').disabled = i === STOPS.length - 1;
+    $('where').textContent = 'Stop ' + (i + 1) + ' of ' + STOPS.length + ': ' + STOPS[i].title;
+    renderStage();
+    if (!keepHash) { try { history.replaceState(null, '', '#' + STOPS[i].id); } catch (e) {} }
   }
 
-  function render() {
-    var keep = 0, revoke = 0, none = 0;
-    groups.forEach(function (group) {
-      var accessEl = permsOf(group).filter(isAccess)[0];
-      var locked = accessEl && state[accessEl.dataset.perm] === 'revoke';
-      permsOf(group).forEach(function (el) {
-        var v = state[el.dataset.perm];
-        if (v === 'keep') keep++; else if (v === 'revoke') revoke++; else none++;
-        var isLocked = locked && !isAccess(el);
-        el.classList.toggle('locked', isLocked);
-        var name = el.querySelector('.name');
-        var tag = name.querySelector('.lock');
-        if (isLocked && !tag) { tag = document.createElement('small'); tag.className = 'lock'; tag.textContent = 'Locked: revoked with Access'; name.appendChild(tag); }
-        if (!isLocked && tag) tag.remove();
-        el.querySelectorAll('.seg button').forEach(function (b) {
-          b.setAttribute('aria-pressed', String(v === b.textContent.toLowerCase()));
-          b.disabled = isLocked;
+  /* ---- stage ---- */
+  function renderStage() {
+    var s = STOPS[current];
+    var fnButtons = s.fns.map(function (f, k) {
+      var c = CODE[f.code];
+      return '<button type="button" class="fn" data-fn="' + k + '" aria-pressed="false"><span class="fn-t">' + esc(f.title) +
+        '</span><span class="fn-f">' + esc(c.file) + '</span></button>';
+    }).join('');
+    $('stage').innerHTML =
+      '<div class="stage-head"><span class="who">' + esc(s.who) + '</span><h2>' + esc(s.title) + '</h2></div>' +
+      '<div class="cols"><div class="story">' + s.story + (s.visual || '') + '</div><div class="side">' +
+        '<aside class="why"><span class="label">' + esc(s.whyLabel || 'Why') + '</span><p>' + s.why + '</p></aside></div></div>' +
+      '<section class="fns" aria-label="The code behind this stop"><div class="fns-head"><h3>The code behind this stop</h3>' +
+        '<p>Pick one to see the real code and how it works.</p></div><div class="fn-list">' + fnButtons + '</div>' +
+        '<div id="codepanel"><div class="empty-code">No function picked yet. Choose one above to open its code here.</div></div></section>';
+    Array.prototype.forEach.call(document.querySelectorAll('.fn'), function (b) {
+      b.addEventListener('click', function () { openFn(Number(b.dataset.fn)); });
+    });
+    if (s.demo) initDemo();
+  }
+
+  /* ---- code panel ---- */
+  function highlighted(c) {
+    var html;
+    try { html = window.hljs ? hljs.highlight(c.code, { language: c.lang, ignoreIllegals: true }).value : esc(c.code); }
+    catch (e) { html = esc(c.code); }
+    // Split into lines, closing open spans at each line end and reopening them
+    // on the next, so every line stands alone and can be highlighted.
+    var out = [], open = [], line = '';
+    var re = /(<span[^>]*>)|(<\/span>)|(\n)|([^<\n]+|<)/g, m;
+    while ((m = re.exec(html))) {
+      if (m[1]) { open.push(m[1]); line += m[1]; }
+      else if (m[2]) { open.pop(); line += m[2]; }
+      else if (m[3]) { out.push(line + '</span>'.repeat(open.length)); line = open.join(''); }
+      else line += m[4];
+    }
+    out.push(line + '</span>'.repeat(open.length));
+    return out;
+  }
+
+  function openFn(k) {
+    currentFn = k; currentStep = 0;
+    Array.prototype.forEach.call(document.querySelectorAll('.fn'), function (b) {
+      b.setAttribute('aria-pressed', String(Number(b.dataset.fn) === k));
+    });
+    var f = STOPS[current].fns[k], c = CODE[f.code];
+    var end = c.start + c.code.split('\n').length - 1;
+    var lines = highlighted(c).map(function (h, i) {
+      return '<div class="ln" data-n="' + (c.start + i) + '"><span class="num">' + (c.start + i) + '</span><span>' + (h || ' ') + '</span></div>';
+    }).join('');
+    var steps = f.steps.map(function (st, i) {
+      var range = st.lines[0] === st.lines[1] ? 'line ' + st.lines[0] : 'lines ' + st.lines[0] + '–' + st.lines[1];
+      return '<button type="button" class="step" data-step="' + i + '" aria-pressed="false"><span class="sn">' + (i + 1) +
+        '</span><span>' + st.text + '<span class="lines">' + range + '</span></span></button>';
+    }).join('');
+    $('codepanel').innerHTML =
+      '<div class="codepanel"><div class="cp-head"><h3>' + esc(f.title) + '</h3><span class="file">' + esc(c.file) + ' · lines ' + c.start + '–' + end +
+      '</span><p>' + f.what + '</p></div><div class="cp-body"><div class="code" id="code" role="region" aria-label="Code" tabindex="0">' + lines +
+      '</div><div class="steps"><div class="steps-nav"><button type="button" id="sprev">← Step</button><span id="scount"></span>' +
+      '<button type="button" id="snext">Step →</button></div>' + steps + '</div></div>' +
+      '<aside class="cp-why"><span class="label">Why it\'s written this way</span><p>' + f.why + '</p></aside></div>';
+    Array.prototype.forEach.call(document.querySelectorAll('.step'), function (b) {
+      b.addEventListener('click', function () { focusStep(Number(b.dataset.step)); });
+    });
+    $('sprev').addEventListener('click', function () { focusStep(currentStep - 1); });
+    $('snext').addEventListener('click', function () { focusStep(currentStep + 1); });
+    focusStep(0);
+    $('codepanel').scrollIntoView({ block: 'nearest' });
+  }
+
+  function focusStep(i) {
+    var f = STOPS[current].fns[currentFn];
+    if (i < 0 || i >= f.steps.length) return;
+    currentStep = i;
+    var st = f.steps[i], code = $('code');
+    code.classList.add('focusing');
+    var first = null;
+    Array.prototype.forEach.call(code.querySelectorAll('.ln'), function (ln) {
+      var n = Number(ln.dataset.n), on = n >= st.lines[0] && n <= st.lines[1];
+      ln.classList.toggle('on', on);
+      if (on && !first) first = ln;
+    });
+    if (first) code.scrollTop = Math.max(0, first.offsetTop - 40);
+    Array.prototype.forEach.call(document.querySelectorAll('.step'), function (b) {
+      b.setAttribute('aria-pressed', String(Number(b.dataset.step) === i));
+    });
+    $('scount').textContent = 'Step ' + (i + 1) + ' of ' + f.steps.length;
+    $('sprev').disabled = i === 0;
+    $('snext').disabled = i === f.steps.length - 1;
+  }
+
+  /* ---- Access rule demo: the rule as the app applies it, within one group ---- */
+  function initDemo() {
+    var groups = Array.prototype.slice.call(document.querySelectorAll('#demo .dg'));
+    var state = {};
+    var perms = function (g) { return Array.prototype.slice.call(g.querySelectorAll('.perm')); };
+    var isAccess = function (el) { return el.dataset.name === 'Access'; };
+    groups.forEach(function (g) {
+      perms(g).forEach(function (el) {
+        state[el.dataset.perm] = null;
+        ['Keep', 'Revoke'].forEach(function (label) {
+          var b = document.createElement('button');
+          b.type = 'button'; b.textContent = label; b.className = label === 'Keep' ? 'k' : 'r';
+          b.setAttribute('aria-pressed', 'false');
+          b.setAttribute('aria-label', label + ' ' + el.dataset.name + ', ' + g.dataset.label);
+          b.addEventListener('click', function () {
+            var id = el.dataset.perm, v = label.toLowerCase();
+            state[id] = state[id] === v ? null : v;
+            if (isAccess(el) && state[id] === 'revoke') perms(g).forEach(function (p) { state[p.dataset.perm] = 'revoke'; });
+            render();
+          });
+          el.querySelector('.seg').appendChild(b);
         });
       });
     });
-    document.getElementById('c-keep').textContent = keep + ' keep';
-    document.getElementById('c-revoke').textContent = revoke + ' revoke';
-    document.getElementById('c-none').textContent = none + ' undecided';
+    function render() {
+      var keep = 0, revoke = 0, none = 0;
+      groups.forEach(function (g) {
+        var acc = perms(g).filter(isAccess)[0];
+        var locked = acc && state[acc.dataset.perm] === 'revoke';
+        perms(g).forEach(function (el) {
+          var v = state[el.dataset.perm];
+          if (v === 'keep') keep++; else if (v === 'revoke') revoke++; else none++;
+          var isLocked = locked && !isAccess(el);
+          el.classList.toggle('locked', isLocked);
+          el.querySelector('.lock').hidden = !isLocked;
+          Array.prototype.forEach.call(el.querySelectorAll('.seg button'), function (b) {
+            b.setAttribute('aria-pressed', String(v === b.textContent.toLowerCase()));
+            b.disabled = isLocked;
+          });
+        });
+      });
+      $('c-keep').textContent = keep + ' keep';
+      $('c-revoke').textContent = revoke + ' revoke';
+      $('c-none').textContent = none + ' undecided';
+    }
+    $('reset').addEventListener('click', function () { Object.keys(state).forEach(function (k) { state[k] = null; }); render(); });
+    render();
   }
 
-  document.getElementById('reset').addEventListener('click', function () {
-    Object.keys(state).forEach(function (k) { state[k] = null; });
-    render();
-  });
-  render();
+  var start = 0;
+  STOPS.forEach(function (s, i) { if (location.hash === '#' + s.id) start = i; });
+  go(start, true);
 })();
 </script>
+</body>
+</html>
