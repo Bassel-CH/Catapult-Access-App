@@ -33,6 +33,11 @@ router = APIRouter(prefix="/api", tags=["audit"])
 logger = logging.getLogger("audit.api")
 
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
 def internal_error(what: str) -> HTTPException:
     """
     A 500 carrying only `what` and a reference code; the full exception, which
@@ -64,6 +69,11 @@ def current_session(
             status_code=400, detail="No data loaded. Please upload a CSV first."
         )
     return dataset
+
+
+# ---------------------------------------------------------------------------
+# Loading the export
+# ---------------------------------------------------------------------------
 
 
 @router.post("/upload", response_model=UploadResponse)
@@ -124,22 +134,10 @@ async def list_rows(dataset: UploadedDataset = Depends(current_session)):
         raise internal_error("Error reading rows")
 
 
-@router.post("/review-document", response_class=HTMLResponse)
-async def review_document(
-    request: ReviewDocumentRequest,
-    dataset: UploadedDataset = Depends(current_session),
-):
-    """The printable review packet for the selected staff, as HTML."""
-    try:
-        html = DocumentService.build_document(
-            people=dataset.build_audit_tree(request.staff_names),
-            audit_label=request.audit_label,
-            manager_name=request.manager_name,
-            highlighted=set(request.flagged),
-        )
-        return HTMLResponse(content=html)
-    except Exception:
-        raise internal_error("Error building document")
+# ---------------------------------------------------------------------------
+# The audit
+# ---------------------------------------------------------------------------
+
 
 @router.post("/audit-tree", response_model=AuditTreeResponse)
 async def audit_tree(
@@ -180,6 +178,29 @@ async def generate_report(
         raise internal_error("Error generating report")
 
 
+# ---------------------------------------------------------------------------
+# Documents
+# ---------------------------------------------------------------------------
+
+
+@router.post("/review-document", response_class=HTMLResponse)
+async def review_document(
+    request: ReviewDocumentRequest,
+    dataset: UploadedDataset = Depends(current_session),
+):
+    """The printable review packet for the selected staff, as HTML."""
+    try:
+        html = DocumentService.build_document(
+            people=dataset.build_audit_tree(request.staff_names),
+            audit_label=request.audit_label,
+            manager_name=request.manager_name,
+            highlighted=set(request.flagged),
+        )
+        return HTMLResponse(content=html)
+    except Exception:
+        raise internal_error("Error building document")
+
+
 @router.post("/export")
 async def export_filtered_data(
     request: ExportRequest,
@@ -213,6 +234,11 @@ async def export_filtered_data(
         raise
     except Exception:
         raise internal_error("Error creating export")
+
+
+# ---------------------------------------------------------------------------
+# Session and health
+# ---------------------------------------------------------------------------
 
 
 @router.delete("/session")
