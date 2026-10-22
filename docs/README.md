@@ -2,6 +2,7 @@
 
 | Document | Read it to | Written for |
 |---|---|---|
+| [handoff.md](handoff.md) | Deploy and run the production image | Infra |
 | [how-it-works.md](how-it-works.md) | Follow an audit from upload to report, and find where each part lives | Anyone |
 | [decisions.md](decisions.md) | Understand why something is the way it is before changing it | Developers, reviewers |
 | [docker.md](docker.md) | Understand how the containers are built and run, dev and production | Developers, infra |
