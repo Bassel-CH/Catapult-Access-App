@@ -121,9 +121,6 @@ async def upload_csv(
             filename=file.filename,
             row_count=result["row_count"],
             rows_dropped=result["rows_dropped"],
-            columns=result["columns"],
-            preview=result["preview"],
-            unique_values=result["unique_values"],
             source_breakdown=result["source_breakdown"],
         )
 

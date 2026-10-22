@@ -15,9 +15,6 @@ class UploadResponse(BaseModel):
     filename: str
     row_count: int
     rows_dropped: int
-    columns: List[str]
-    preview: List[Dict[str, Any]]
-    unique_values: Dict[str, List[str]]
     source_breakdown: Dict[str, int]
 
     class Config:
@@ -27,12 +24,6 @@ class UploadResponse(BaseModel):
                 "filename": "JulyPermissions.csv",
                 "row_count": 4961,
                 "rows_dropped": 2,
-                "columns": ["StaffId", "StaffName", "..."],
-                "preview": [{"StaffId": "12345", "StaffName": "John Smith"}],
-                "unique_values": {
-                    "staff_names": ["John Smith", "Jane Doe"],
-                    "permissions": ["Access", "Read Only"]
-                },
                 "source_breakdown": {
                     "Position-Based": 4163,
                     "Direct Assignment": 798

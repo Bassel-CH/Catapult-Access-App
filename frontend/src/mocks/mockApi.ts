@@ -49,14 +49,6 @@ export async function upload(file: File): Promise<UploadResponse> {
     filename: file?.name ?? 'sample-data.csv',
     row_count: dataset.length,
     rows_dropped: 2, // pretend we dropped a divider row + the "(N rows affected)" footer
-    columns: COLUMNS,
-    preview: dataset.slice(0, 10),
-    unique_values: {
-      staff_names: uniqueSorted(dataset, 'StaffName'),
-      permissions: uniqueSorted(dataset, 'PermissionName'),
-      domains: uniqueSorted(dataset, 'DomainName'),
-      positions: uniqueSorted(dataset, 'PositionName'),
-    },
     source_breakdown,
   }
 }

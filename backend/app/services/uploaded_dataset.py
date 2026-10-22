@@ -89,9 +89,6 @@ class UploadedDataset:
             return {
                 "row_count": len(df),
                 "rows_dropped": rows_dropped,
-                "columns": list(df.columns),
-                "preview": df.head(10).to_dict("records"),
-                "unique_values": self._get_unique_values(df),
                 "source_breakdown": self._get_source_breakdown(df),
             }
 
@@ -167,15 +164,6 @@ class UploadedDataset:
         df["StaffId"] = df["StaffId"].astype(str)
 
         return df
-
-    def _get_unique_values(self, df: pd.DataFrame) -> Dict[str, List[str]]:
-        """Extract unique values for filter dropdowns"""
-        return {
-            "staff_names": sorted([x for x in df["StaffName"].unique() if x]),
-            "permissions": sorted([x for x in df["PermissionName"].unique() if x]),
-            "domains": sorted([x for x in df["DomainName"].unique() if x]),
-            "positions": sorted([x for x in df["PositionName"].unique() if x]),
-        }
 
     def _get_source_breakdown(self, df: pd.DataFrame) -> Dict[str, int]:
         """

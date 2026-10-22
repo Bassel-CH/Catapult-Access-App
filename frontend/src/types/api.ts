@@ -31,14 +31,6 @@ export interface UploadResponse {
   filename: string
   row_count: number
   rows_dropped: number
-  columns: string[]
-  preview: StaffRow[]
-  unique_values: {
-    staff_names: string[]
-    permissions: string[]
-    domains: string[]
-    positions: string[]
-  }
   /** e.g. { "Position-Based": 4163, "Direct Assignment": 798 } */
   source_breakdown: Record<string, number>
 }
