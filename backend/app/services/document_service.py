@@ -1,11 +1,10 @@
 """
-Service for rendering the printable per-person access review document.
+The printable review packet: one section per selected staff member, with
+Keep/Revoke tick-boxes for each direct assignment and their position-based
+access for reference. Open it in a browser and print or save as PDF.
 
-Takes the structured review data from UploadedDataset.build_review() plus the
-audit metadata (label, manager, flagged permissions) and produces a single
-styled HTML page. Open it in a browser and Ctrl+P -> Save as PDF.
-
-One document, all selected people, a page break between each.
+Built from the same audit tree as the manager screen and the report, so a
+highlight is matched by permission id, exactly as it was set.
 """
 from html import escape
 from typing import List, Dict, Any, Set
@@ -13,38 +12,32 @@ from datetime import datetime
 
 
 class DocumentService:
-    """Renders review data into a printable HTML document."""
+    """Renders the audit tree into a printable HTML document."""
 
     @staticmethod
     def build_document(
-        reviews: List[Dict[str, Any]],
+        people: List[Dict[str, Any]],
         audit_label: str,
         manager_name: str,
-        flagged_by_person: Dict[str, Set[str]],
+        highlighted: Set[str],
     ) -> str:
         """
         Build the full HTML page.
 
         Args:
-            reviews: list of per-person review objects from build_review()
+            people: audit trees from UploadedDataset.build_audit_tree()
             audit_label: e.g. "July - Operations"
             manager_name: manager the packet is for
-            flagged_by_person: staff name -> set of "Domain::Permission" keys
-                to highlight for THAT person only (see
-                UploadedDataset.flagged_by_person, which builds it from the UI's
-                permission ids).
+            highlighted: permission ids IT highlighted. Only direct
+                assignments have a row to mark; position-based ones are
+                listed for reference only.
 
         Returns:
             A complete HTML document as a string.
         """
-        flagged_by_person = flagged_by_person or {}
         today = datetime.now().strftime("%B %d, %Y")
-
         people_html = "".join(
-            DocumentService._render_person(
-                r, flagged_by_person.get(r["staff_name"], set())
-            )
-            for r in reviews
+            DocumentService._render_person(person, highlighted) for person in people
         )
 
         return f"""<!DOCTYPE html>
@@ -69,11 +62,11 @@ class DocumentService:
 </html>"""
 
     @staticmethod
-    def _render_person(review: Dict[str, Any], flagged: Set[str]) -> str:
-        """Render one person's section."""
-        name = escape(review["staff_name"])
+    def _render_person(person: Dict[str, Any], highlighted: Set[str]) -> str:
+        """Render one staff member's section."""
+        name = escape(person["staff_name"])
 
-        if not review["found"]:
+        if not person["found"]:
             return f"""<section class="person">
   <div class="person-header">
     <h2>{name}</h2>
@@ -81,17 +74,19 @@ class DocumentService:
   </div>
 </section>"""
 
-        email = escape(review["email"])
-        direct_count = review["direct_count"]
-        inherited_count = review["inherited_count"]
+        email = escape(person["email"])
+        direct_apps = [
+            app for g in person["groups"] if g["key"] == "direct" for app in g["apps"]
+        ]
+        positions = [g for g in person["groups"] if g["key"] == "position"]
 
-        direct_html = DocumentService._render_direct(review["direct"], flagged)
-        inherited_html = DocumentService._render_inherited(review["inherited"])
+        direct_html = DocumentService._render_direct(direct_apps, highlighted)
+        inherited_html = DocumentService._render_inherited(positions)
 
         return f"""<section class="person">
   <div class="person-header">
     <h2>{name}</h2>
-    <p class="sub">{email} &middot; {direct_count} direct &middot; {inherited_count} position-based</p>
+    <p class="sub">{email} &middot; {person["direct_count"]} direct &middot; {person["inherited_count"]} position-based</p>
   </div>
 
   <h3 class="section-title direct-title">Direct assignments &mdash; review each</h3>
@@ -107,21 +102,21 @@ class DocumentService:
 </section>"""
 
     @staticmethod
-    def _render_direct(groups: List[Dict[str, Any]], flagged: Set[str]) -> str:
-        """Render the direct-assignment tables, grouped by domain."""
-        if not groups:
+    def _render_direct(apps: List[Dict[str, Any]], highlighted: Set[str]) -> str:
+        """Render the direct-assignment tables, one per app."""
+        if not apps:
             return '<p class="empty">No direct assignments.</p>'
 
         blocks = []
-        for group in groups:
-            domain = escape(group["domain"])
+        for app in apps:
+            domain = escape(app["domain"])
             rows = []
-            for perm in group["permissions"]:
-                is_flagged = f"{group['domain']}::{perm}" in flagged
+            for perm in app["permissions"]:
+                is_flagged = perm["id"] in highlighted
                 row_class = "row flagged" if is_flagged else "row"
                 flag_icon = '<span class="flag">&#9873;</span>' if is_flagged else ""
                 rows.append(f"""<tr class="{row_class}">
-      <td class="perm">{flag_icon}{escape(perm)}</td>
+      <td class="perm">{flag_icon}{escape(perm["name"])}</td>
       <td class="box-cell"><span class="box"></span></td>
       <td class="box-cell"><span class="box"></span></td>
     </tr>""")
@@ -144,15 +139,16 @@ class DocumentService:
             return '<p class="empty">No position-based access.</p>'
 
         blocks = []
-        for pos in positions:
-            position = escape(pos["position"])
+        for group in positions:
+            position = escape(group["position"])
+            count = sum(len(app["permissions"]) for app in group["apps"])
             lines = []
-            for domain_group in pos["domains"]:
-                domain = escape(domain_group["domain"])
-                perms = ", ".join(escape(p) for p in domain_group["permissions"])
+            for app in group["apps"]:
+                domain = escape(app["domain"])
+                perms = ", ".join(escape(p["name"]) for p in app["permissions"])
                 lines.append(f'<p class="ref-line"><span class="ref-domain">{domain}:</span> {perms}</p>')
             blocks.append(f"""<div class="ref-position">
-    <p class="ref-position-name">{position} ({pos["count"]})</p>
+    <p class="ref-position-name">{position} ({count})</p>
     {"".join(lines)}
   </div>""")
 
