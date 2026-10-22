@@ -1,4 +1,4 @@
-/** Tiny presentational primitives shared across the phases. */
+/** Small presentational building blocks shared by every step. */
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {

@@ -1,3 +1,4 @@
+/** A staff member's audit tree with a Highlight button and note per permission. */
 import { memo } from 'react'
 import type { AuditPerson } from '../../types/api'
 import { useAudit } from '../../state/AuditContext'

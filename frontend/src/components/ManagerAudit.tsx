@@ -1,8 +1,7 @@
 /**
- * Manager audit step: expand each person into groups → apps →
- * permissions and Keep/Revoke each one. Bulk actions roll decisions down a
- * subtree; the Access-cascade rule (in lib/cascade + the reducer) auto-revokes
- * and locks an app's other permissions when its Access is revoked.
+ * The manager audit step: each selected staff member's access, by group then
+ * app, with Keep/Revoke on every permission and bulk buttons at each level.
+ * Revoking an app's Access locks the rest of it (lib/cascade.ts).
  */
 import { useMemo, useState } from 'react'
 import type { AuditApp, AuditGroup, AuditPermission, AuditPerson } from '../types/api'
@@ -144,8 +143,8 @@ function PersonCard({ person, locked, initialOpen }: { person: AuditPerson; lock
 
 export default function ManagerAudit() {
   const { state, periodLabel, backToSetup, finalize } = useAudit()
-  // Bump `key` to remount the tree so every <details> re-applies its open
-  // state (native <details> is uncontrolled once mounted).
+  // Expand/collapse all works by remounting the tree: a <details> element
+  // ignores its `open` prop after the first render.
   const [openSignal, setOpenSignal] = useState({ open: true, key: 0 })
 
   const people = useMemo(

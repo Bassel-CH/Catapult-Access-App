@@ -1,3 +1,4 @@
+/** Panel 2: department, month, year and manager. */
 import { useAudit } from '../../state/AuditContext'
 import { MONTHS } from '../../lib/format'
 import { Panel, PanelHead } from '../ui'

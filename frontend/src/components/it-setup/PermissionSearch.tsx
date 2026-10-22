@@ -1,13 +1,9 @@
 /**
- * Permission search — find everyone holding a named permission, and show HOW
- * they hold it: directly assigned, or inherited from a specific position.
+ * Who holds a permission, and how: directly, or through which position.
  *
- * Reads treeCache (already populated at upload) so results carry real
- * permission ids, which is what highlighting is keyed by. Selection writes to
- * the same state.selected the staff list reads, so picking someone here shows
- * up as picked there.
- *
- * Renders bare (no Panel) — ItSetup owns the panel and the tab strip.
+ * Reads the audit trees loaded at upload, so results carry the real permission
+ * ids highlights use, and shares the staff list's selection. No panel of its
+ * own: ItSetup owns the panel and tabs.
  */
 import { useMemo, useState } from 'react'
 import { useAudit } from '../../state/AuditContext'
