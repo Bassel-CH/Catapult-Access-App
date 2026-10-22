@@ -1,33 +1,19 @@
-# docker-compose.yml  —  BASE of the dev stack
-#
-# Which dev services exist and how they reach each other. The override file
-# (applied automatically) adds the live-editing details. Production doesn't use
-# this file: it runs docker-compose.prod.yml on its own.
-#
-# Run this repo from the repo root (where this file lives), NOT from backend/.
-#
-#   docker compose up            -> base + docker-compose.override.yml (dev)   [default]
-#   docker compose -f docker-compose.prod.yml up   (prod — standalone, one combined container)
+# Dev stack: `docker compose up` reads this file and then
+# docker-compose.override.yml. Production uses docker-compose.prod.yml on its
+# own. See docs/docker.md.
 
 services:
   backend:
     build:
-      context: ./backend          # the Dockerfile you already built & tested
+      context: ./backend
       dockerfile: Dockerfile
     image: audit-backend
-    # Ports, the live code mount and --reload are in the override.
 
   frontend:
-    # A plain Node image running the Vite dev server; the override supplies the
-    # command and the live code mount.
     image: node:22-alpine
     depends_on:
-      - backend                   # start ordering only — see note in the walkthrough
+      - backend
 
-# One user-defined network so the two services can find each other by name.
-# Compose creates a default network automatically, but naming it explicitly
-# documents intent and makes the DNS behaviour obvious: inside this network,
-# "backend" resolves to the backend container's IP.
 networks:
   default:
     name: audit-net
