@@ -25,9 +25,6 @@ RUN npm ci
 
 COPY frontend/ ./
 
-# Hard-coded, not a build arg: a prod image must never ship mock data.
-ENV VITE_USE_MOCKS=false
-
 # package.json runs `tsc -b && vite build` — a type error fails the build.
 RUN npm run build
 

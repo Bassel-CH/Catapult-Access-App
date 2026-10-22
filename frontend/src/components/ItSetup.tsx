@@ -8,7 +8,7 @@ import { memo, useMemo, useState } from 'react'
 import type { AuditPerson } from '../types/api'
 import { useAudit, type AuditState } from '../state/AuditContext'
 import PermissionSearch from './PermissionSearch'
-import { api, usingMocks } from '../services/api'
+import { api } from '../services/api'
 import { collectPermIds } from '../lib/cascade'
 import { MONTHS } from '../lib/format'
 import { downloadBlob, slug } from '../lib/download'
@@ -49,7 +49,7 @@ function UploadPanel() {
   }
   return (
     <Panel>
-      <PanelHead title="1 · Load the report" sub="Upload the monthly organization export, or load sample data to explore." />
+      <PanelHead title="1 · Load the report" sub="Upload the monthly organization export." />
       <div className="flex gap-2.5 items-center flex-wrap my-3.5">
         <label className="inline-flex items-center gap-2 rounded-lg font-semibold border border-line bg-white px-4 py-2 cursor-pointer hover:border-[#c4cad6]">
           <input
@@ -66,13 +66,6 @@ function UploadPanel() {
           />
           Upload CSV
         </label>
-        {/* Mock-only: this posts a zero-byte File, which the real backend
-            correctly rejects as an empty CSV. Hidden when live. */}
-        {usingMocks && (
-          <Button variant="ghost" onClick={() => pick(new File([], 'sample-data.csv'))}>
-            Load sample data
-          </Button>
-        )}
         <span className="text-muted text-[13px]">
           {state.loading ? 'Loading…'
             : up ? <><strong>{up.row_count}</strong> rows · <strong>{state.users.length}</strong> users loaded · {up.rows_dropped} junk rows dropped</>

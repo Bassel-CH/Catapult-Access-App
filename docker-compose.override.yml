@@ -52,9 +52,6 @@ services:
     # host browser (not just from inside the container).
     command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
     environment:
-      # The app calls /api on its own address; Vite's dev proxy (vite.config.ts)
-      # forwards those calls to the backend.
-      - VITE_USE_MOCKS=false
       # Tells vite.config.ts's proxy where the backend lives INSIDE compose.
       # "backend" is the compose service name, resolved via the audit-net DNS.
       # When you run bare `npm run dev` on your host instead, this var is unset,

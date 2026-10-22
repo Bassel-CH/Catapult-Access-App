@@ -2,9 +2,7 @@
  * API contract types — mirror the FastAPI backend's Pydantic schemas exactly.
  *
  * Source of truth: backend/app/models/schemas.py (as published at /docs).
- * The mock service in src/mocks/ produces these shapes, and the real fetch
- * client in src/services/api.ts parses into them, so swapping mock → real is
- * invisible to the UI.
+ * src/services/api.ts parses responses into these.
  *
  * NOTE: the two real PermissionSource values are exactly these strings. The
  * old standalone prototype used "Position: X" / "Direct assignment"; the live

@@ -1,5 +1,4 @@
 import { useAudit } from './state/AuditContext'
-import { usingMocks } from './services/api'
 import { Stepper } from './components/Stepper'
 import ItSetup from './components/ItSetup'
 import ManagerAudit from './components/ManagerAudit'
@@ -22,7 +21,7 @@ export default function App() {
       {state.phase === 3 && <Report />}
 
       <p className="text-xs text-muted text-center mt-8">
-        {usingMocks ? 'Running on mock data' : 'Connected to the live API'} · decisions live only in this tab until the report is generated.
+        Decisions live only in this tab until the report is generated.
       </p>
     </div>
   )
