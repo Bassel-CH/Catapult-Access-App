@@ -5,7 +5,7 @@ everything the app asks about it (filters, review trees, exports).
 Each session holds exactly one of these (see session_service.py).
 """
 import pandas as pd
-from typing import Dict, List, Any, Optional, Set
+from typing import Dict, List, Any, Optional
 import io
 import hashlib
 import logging
@@ -191,84 +191,6 @@ class UploadedDataset:
         """
         return self.current_df[self.current_df["StaffId"].isin(staff_ids)].copy()
 
-    def build_review(self, staff_names: List[str]) -> List[Dict[str, Any]]:
-        """
-        Build a per-profile access review for the selected staff.
-
-        For each StaffName, split their permissions into:
-          - direct: Direct Assignment rows (the reviewable set, shown first)
-          - inherited: Position-Based rows (reference, grouped by position)
-
-        Grouped by StaffName (not StaffId) so related profiles like
-        "Amber Weiss" and "Amber WeissTL" stay as separate reviewable
-        identities, matching how the audit actually treats them.
-
-        Returns a list of profile objects, one per selected name, in the
-        same order the names were given.
-        """
-        reviews: List[Dict[str, Any]] = []
-
-        for name in staff_names:
-            person = self.current_df[self.current_df["StaffName"] == name]
-
-            if len(person) == 0:
-                # Name selected but not found in the data - report it
-                # rather than silently omitting, so nothing goes missing.
-                reviews.append({
-                    "staff_name": name,
-                    "found": False,
-                    "email": "",
-                    "direct": [],
-                    "inherited": [],
-                    "direct_count": 0,
-                    "inherited_count": 0,
-                })
-                continue
-
-            email = person["StaffEmailAddress"].iloc[0]
-
-            direct_df = person[person["PermissionSource"] == "Direct Assignment"]
-            inherited_df = person[person["PermissionSource"] == "Position-Based"]
-
-            reviews.append({
-                "staff_name": name,
-                "found": True,
-                "email": email,
-                # Direct assignments grouped by domain (the reviewable set)
-                "direct": self._group_by_domain(direct_df),
-                # Position-based access grouped by position (reference set)
-                "inherited": self._group_by_position(inherited_df),
-                "direct_count": len(direct_df),
-                "inherited_count": len(inherited_df),
-            })
-
-        return reviews
-
-    def _group_by_domain(self, df: pd.DataFrame) -> List[Dict[str, Any]]:
-        """Group permission rows by DomainName -> list of permissions."""
-        groups: List[Dict[str, Any]] = []
-        for domain in sorted(df["DomainName"].unique()):
-            perms = sorted(df[df["DomainName"] == domain]["PermissionName"].tolist())
-            groups.append({"domain": domain, "permissions": perms})
-        return groups
-
-    def _group_by_position(self, df: pd.DataFrame) -> List[Dict[str, Any]]:
-        """
-        Group position-based rows by PositionName, then by domain within.
-
-        A person may hold several positions (e.g. Team Lead + Health
-        Technician); each is shown as its own block for reference.
-        """
-        groups: List[Dict[str, Any]] = []
-        for position in sorted(df["PositionName"].unique()):
-            pos_df = df[df["PositionName"] == position]
-            groups.append({
-                "position": position,
-                "domains": self._group_by_domain(pos_df),
-                "count": len(pos_df),
-            })
-        return groups
-
     # ------------------------------------------------------------------
     # Audit tree (Phase A): the reviewable structure with stable IDs
     # ------------------------------------------------------------------
@@ -336,7 +258,7 @@ class UploadedDataset:
         one group per Position they hold (reference). Each group -> apps ->
         permissions, and every permission carries a stable id.
 
-        Grouped by StaffName (matching build_review) so related profiles like
+        Grouped by StaffName so related profiles like
         "Amber Weiss" and "Amber WeissTL" stay separate.
         """
         people: List[Dict[str, Any]] = []
@@ -386,36 +308,3 @@ class UploadedDataset:
             })
 
         return people
-
-    def flagged_by_person(
-        self, staff_names: List[str], permission_ids: List[str]
-    ) -> Dict[str, Set[str]]:
-        """
-        Translate highlighted permission ids into per-person "domain::permission"
-        keys the review packet can match against.
-
-        The UI keys highlights by AuditPermission.id, but the packet is built
-        from build_review(), which has no ids. Rebuilding the audit tree gives
-        the same ids (they're deterministic), so we can map each id back to the
-        exact person + app + permission it was set on.
-
-        Only Direct Assignment highlights are returned: the packet's tick-box
-        tables list direct grants only, so a position-based highlight has no
-        row to land on.
-        """
-        wanted = set(permission_ids or [])
-        out: Dict[str, Set[str]] = {}
-        if not wanted:
-            return out
-
-        for person in self.build_audit_tree(staff_names):
-            for group in person["groups"]:
-                if group["key"] != "direct":
-                    continue
-                for app in group["apps"]:
-                    for perm in app["permissions"]:
-                        if perm["id"] in wanted:
-                            out.setdefault(person["staff_name"], set()).add(
-                                f"{app['domain']}::{perm['name']}"
-                            )
-        return out

@@ -151,14 +151,11 @@ async def review_document(
     staff. Returns HTML; open in a browser and Save as PDF.
     """
     try:
-        reviews = dataset.build_review(request.staff_names)
         html = DocumentService.build_document(
-            reviews=reviews,
+            people=dataset.build_audit_tree(request.staff_names),
             audit_label=request.audit_label,
             manager_name=request.manager_name,
-            flagged_by_person=dataset.flagged_by_person(
-                request.staff_names, request.flagged
-            ),
+            highlighted=set(request.flagged),
         )
         return HTMLResponse(content=html)
     except Exception:
