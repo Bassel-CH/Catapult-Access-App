@@ -1,6 +1,6 @@
 import { useAudit } from './state/AuditContext'
 import { Stepper } from './components/Stepper'
-import ItSetup from './components/ItSetup'
+import ItSetup from './components/it-setup/ItSetup'
 import ManagerAudit from './components/ManagerAudit'
 import Report from './components/Report'
 

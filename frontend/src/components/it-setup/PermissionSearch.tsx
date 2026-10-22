@@ -10,8 +10,8 @@
  * Renders bare (no Panel) — ItSetup owns the panel and the tab strip.
  */
 import { useMemo, useState } from 'react'
-import { useAudit } from '../state/AuditContext'
-import { Pill } from './ui'
+import { useAudit } from '../../state/AuditContext'
+import { Pill } from '../ui'
 
 type SourceFilter = 'all' | 'direct' | 'position'
 
