@@ -1,5 +1,5 @@
 """
-Service for generating exports
+The CSV export: the selected staff's rows, with department and audit date added.
 """
 import re
 import pandas as pd
@@ -10,7 +10,6 @@ FORMULA_STARTS = ("=", "+", "-", "@", "\t", "\r")
 
 
 class ExportService:
-    """Handles export generation with department assignments"""
 
     @staticmethod
     def create_export(
@@ -19,18 +18,8 @@ class ExportService:
         audit_date: Optional[str] = None
     ) -> Tuple[bytes, str]:
         """
-        Build the export CSV in memory, with department and audit date columns.
-
-        Nothing is written to disk: the bytes go straight back to the browser,
-        so no staff data is left behind on the server.
-
-        Args:
-            df: DataFrame to export
-            department: Department name to add
-            audit_date: Audit date (defaults to today)
-
-        Returns:
-            (csv_bytes, filename)
+        The export as (csv_bytes, filename). Built in memory and never written
+        to disk. audit_date defaults to today.
         """
         export_df = df.copy()
         export_df['Department'] = department
@@ -49,7 +38,6 @@ class ExportService:
         safe_dept_name = re.sub(r'[^A-Za-z0-9_-]+', '_', department).strip('_') or 'audit'
         filename = f"Audit_{safe_dept_name}_{timestamp}.csv"
 
-        # UTF-8 so the export opens cleanly everywhere
         csv_bytes = export_df.to_csv(index=False).encode('utf-8')
 
         return csv_bytes, filename

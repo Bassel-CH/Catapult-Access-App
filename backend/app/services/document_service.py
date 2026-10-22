@@ -156,7 +156,7 @@ class DocumentService:
 
     @staticmethod
     def _styles() -> str:
-        """All CSS, including print rules, kept in one place."""
+        """The packet's CSS, including the print rules."""
         return """
 * { box-sizing: border-box; }
 body {

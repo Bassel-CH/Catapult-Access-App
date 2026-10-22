@@ -1,6 +1,6 @@
 """
-One upload's data: reads and checks the permissions CSV, then answers
-everything the app asks about it (filters, review trees, exports).
+One upload's data: reads and checks the permissions CSV, then answers what
+the app asks about it (its rows, audit trees, rows to export).
 
 Each session holds exactly one of these (see session_service.py).
 """
@@ -15,9 +15,8 @@ from ..config import REQUIRED_COLUMNS
 from ..utils.exceptions import InvalidCSVError
 
 
-# The only two PermissionSource values that represent real permissions.
-# Everything else (header dividers like "----", the trailing
-# "(N rows affected)" footer, or blanks) is export noise and gets dropped.
+# The only PermissionSource values on real permission rows. Anything else is
+# export noise (the "----" divider, the "(N rows affected)" footer).
 VALID_PERMISSION_SOURCES = ["Position-Based", "Direct Assignment"]
 
 logger = logging.getLogger("audit.csv")
@@ -32,41 +31,25 @@ class UploadedDataset:
 
     async def process_upload(self, file_content: bytes, filename: str) -> Dict[str, Any]:
         """
-        Process uploaded CSV file
+        Read and check the upload and keep it. Returns its row counts.
 
-        Args:
-            file_content: Raw bytes of the CSV file
-            filename: Name of the uploaded file
-
-        Returns:
-            Dictionary with upload summary and preview data
-
-        Raises:
-            InvalidCSVError: If CSV is malformed or missing required columns
+        Raises InvalidCSVError, with a message fit to show, if the file can't
+        be used.
         """
         try:
-            # Read the CSV. Reports come out cp1252-encoded (Windows), so try
-            # that first, then fall back to UTF-8 if a different file shows up.
             df = self._read_csv_with_encoding(file_content)
 
-            # Validate required columns
             missing_cols = set(REQUIRED_COLUMNS) - set(df.columns)
             if missing_cols:
                 raise InvalidCSVError(
                     f"Missing required columns: {', '.join(missing_cols)}"
                 )
 
-            # Drop export noise: keep only rows with a real PermissionSource.
-            # This removes the dashes-divider row and the "(N rows affected)"
-            # footer automatically, every month, without hardcoding them.
             rows_before = len(df)
             df = df[df["PermissionSource"].isin(VALID_PERMISSION_SOURCES)].copy()
             rows_dropped = rows_before - len(df)
 
-            # Nothing survived the drop. Previously this returned success with
-            # row_count 0, which let the UI open an audit over an empty dataset
-            # and produce a report attesting to nothing. For a compliance tool
-            # that silent no-op is worse than a hard failure, so refuse it.
+            # An audit over nothing would produce a report attesting to nothing.
             if len(df) == 0:
                 raise InvalidCSVError(
                     "No permission rows found in this file"
@@ -79,10 +62,8 @@ class UploadedDataset:
                     + "Check that this is the full report export."
                 )
 
-            # Clean the data
             df = self._clean_dataframe(df)
 
-            # Store in memory
             self.current_df = df
             self.filename = filename
 
@@ -97,11 +78,11 @@ class UploadedDataset:
         except pd.errors.EmptyDataError:
             raise InvalidCSVError("CSV file is empty")
         except pd.errors.ParserError as e:
-            # pandas' parser messages are about the file's shape (e.g.
-            # "Expected 7 fields in line 12, saw 8") — safe and useful to show.
+            # pandas' parser messages describe the file's shape (e.g. "Expected
+            # 7 fields in line 12, saw 8"): safe and useful to show.
             raise InvalidCSVError(f"Error parsing CSV: {str(e)}")
         except Exception:
-            # Anything else is unexpected: keep internals out of the response.
+            # Anything else is unexpected: keep the details out of the message.
             ref = secrets.token_hex(3)
             logger.exception("Unexpected error processing CSV [ref %s]", ref)
             raise InvalidCSVError(
@@ -111,23 +92,14 @@ class UploadedDataset:
 
     def _read_csv_with_encoding(self, file_content: bytes) -> pd.DataFrame:
         """
-        Read CSV bytes, trying the encodings our reports actually use.
+        Parse the CSV as UTF-8, or else as cp1252 (what the monthly export uses).
 
-        UTF-8 is tried FIRST, then cp1252 (Windows-1252, what the monthly
-        export uses). The order matters: cp1252 accepts almost any byte, so
-        trying it first "succeeds" on UTF-8 files and garbles accents
-        ("Jené" -> "JenÃ©"). UTF-8 is strict, so a real cp1252 file with
-        accents fails it cleanly and falls through to cp1252. Pure-ASCII
-        files read identically either way.
+        UTF-8 must be tried first: cp1252 accepts almost any byte, so it would
+        "succeed" on a UTF-8 file and garble its accents. "utf-8-sig" also
+        strips the byte-order mark Excel adds to "CSV UTF-8" files.
 
-        "utf-8-sig" is UTF-8 that also strips the invisible byte-order mark
-        Excel adds when saving as "CSV UTF-8"; without that, the first column
-        header reads as "\\ufeffStaffId" and the upload is rejected.
-
-        dtype=str keeps every column as text, so an id like "00123" is never
-        turned into the number 123. Text like "NULL" in empty PositionName
-        cells is still read as blank (the default NA handling, which the
-        direct-assignment rows rely on).
+        dtype=str keeps ids like "00123" as text. The text "NULL" still reads
+        as blank, which direct assignments' PositionName relies on.
         """
         for encoding in ("utf-8-sig", "cp1252"):
             try:
@@ -142,36 +114,19 @@ class UploadedDataset:
         )
 
     def _clean_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Clean and standardize the dataframe
-
-        Args:
-            df: Raw dataframe from CSV
-
-        Returns:
-            Cleaned dataframe
-        """
-        # Strip whitespace from string columns.
-        # pandas 3.0: use .map (DataFrame.applymap was removed in 3.0).
+        """Trim whitespace and turn missing values into empty strings."""
         string_columns = df.select_dtypes(include=["object", "string"]).columns
         for col in string_columns:
             df[col] = df[col].map(lambda x: x.strip() if isinstance(x, str) else x)
 
-        # Replace missing values with empty strings for cleaner display
         df = df.fillna("")
 
-        # Ensure StaffId is treated as text (preserves leading zeros)
         df["StaffId"] = df["StaffId"].astype(str)
 
         return df
 
     def _get_source_breakdown(self, df: pd.DataFrame) -> Dict[str, int]:
-        """
-        Count rows by PermissionSource.
-
-        This is the audit signal: how many permissions are inherited from a
-        position vs. hand-granted directly to a user (the rows worth review).
-        """
+        """Rows per PermissionSource: how many come from positions vs. direct grants."""
         counts = df["PermissionSource"].value_counts().to_dict()
         return {str(k): int(v) for k, v in counts.items()}
 
@@ -180,19 +135,11 @@ class UploadedDataset:
         return self.current_df.to_dict("records")
 
     def get_data_by_staff_ids(self, staff_ids: List[str]) -> pd.DataFrame:
-        """
-        Get data for specific staff IDs
-
-        Args:
-            staff_ids: List of staff IDs to retrieve
-
-        Returns:
-            Filtered dataframe
-        """
+        """The rows for these StaffIds (the export selects by id, not name)."""
         return self.current_df[self.current_df["StaffId"].isin(staff_ids)].copy()
 
     # ------------------------------------------------------------------
-    # Audit tree (Phase A): the reviewable structure with stable IDs
+    # Audit tree: each staff member's access, with a stable id per permission
     # ------------------------------------------------------------------
 
     @staticmethod
@@ -205,11 +152,10 @@ class UploadedDataset:
         occurrence: int,
     ) -> str:
         """
-        Build a stable fingerprint for one permission.
-
-        Deterministic: the same loaded data always yields the same id, so a
-        decision made in the browser maps back to the exact same permission
-        on the server. `occurrence` disambiguates genuine duplicate rows.
+        A stable fingerprint for one permission: the same row always gets the
+        same id, which is what lets a re-upload restore an audit. `occurrence`
+        tells exact duplicate rows apart. md5 is used as a fingerprint here,
+        not for security.
         """
         raw = f"{staff_name}|{source}|{position}|{domain}|{permission}|{occurrence}"
         return hashlib.md5(raw.encode("utf-8")).hexdigest()[:12]
@@ -222,7 +168,7 @@ class UploadedDataset:
         position: Optional[str],
         df: pd.DataFrame,
     ) -> Dict[str, Any]:
-        """Build one group (direct, or a single position) with per-app leaves."""
+        """One group (the direct grants, or one position), split into apps."""
         apps: List[Dict[str, Any]] = []
         for domain in sorted(df["DomainName"].unique()):
             dom_df = df[df["DomainName"] == domain]
@@ -252,14 +198,12 @@ class UploadedDataset:
 
     def build_audit_tree(self, staff_names: List[str]) -> List[Dict[str, Any]]:
         """
-        Build the reviewable access tree for the selected staff.
+        Each staff member's access: their direct grants first, then one group
+        per position they hold; each group split into apps, then permissions.
 
-        Per person: a Direct-assignment group (first, the reviewable set) plus
-        one group per Position they hold (reference). Each group -> apps ->
-        permissions, and every permission carries a stable id.
-
-        Grouped by StaffName so related profiles like
-        "Amber Weiss" and "Amber WeissTL" stay separate.
+        Grouped by StaffName, so related profiles like "Amber Weiss" and
+        "Amber WeissTL" stay separate. A name not in the upload comes back
+        with found=False.
         """
         people: List[Dict[str, Any]] = []
 
@@ -284,13 +228,11 @@ class UploadedDataset:
 
             groups: List[Dict[str, Any]] = []
 
-            # Direct assignments first — the set the manager actually reviews.
             if len(direct_df):
                 groups.append(self._audit_group(
                     name, "Direct Assignment", "Direct assignment", None, direct_df
                 ))
 
-            # One group per position, for reference context.
             for position in sorted(inherited_df["PositionName"].unique()):
                 pos_df = inherited_df[inherited_df["PositionName"] == position]
                 groups.append(self._audit_group(

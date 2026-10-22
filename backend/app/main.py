@@ -1,6 +1,6 @@
 """
-Main FastAPI application
-Entry point for the Catapult Applications Audit backend
+The FastAPI app: settings applied at startup, the routes, and the last-resort
+error handler.
 """
 import logging
 import os
@@ -21,11 +21,10 @@ from .api.routes import router
 logger = logging.getLogger("audit.api")
 
 
-# Starlette moves an uploaded file from memory to a temp file on disk once it
-# passes spool_max_size (1 MB by default), and uploads hold real permissions
-# data. Raising it above the upload limit keeps every accepted upload in memory.
-# This is a class attribute, not a documented setting: if an upgrade removed
-# it, setting it would silently do nothing, so refuse to start instead.
+# Starlette moves uploads over spool_max_size (1 MB by default) to a temp file
+# on disk; uploads hold permission data, so keep every accepted one in memory.
+# It's an undocumented class attribute: if an upgrade removes it, setting it
+# would silently do nothing, so refuse to start instead.
 if not isinstance(getattr(MultiPartParser, "spool_max_size", None), int):
     raise RuntimeError(
         "starlette's MultiPartParser.spool_max_size is gone, so uploads would be "
@@ -35,12 +34,10 @@ if not isinstance(getattr(MultiPartParser, "spool_max_size", None), int):
 MultiPartParser.spool_max_size = MAX_UPLOAD_SIZE + 1024 * 1024
 
 
-# The interactive API docs (/docs, /redoc, /openapi.json) are for development.
-# Off unless ENABLE_API_DOCS=true, so a deployment that forgets the setting
-# doesn't publish them. The dev compose override turns them on.
+# The interactive API docs stay off unless enabled, so a deployment that
+# forgets the setting doesn't publish them. The dev stack enables them.
 DOCS_ENABLED = os.environ.get("ENABLE_API_DOCS", "").lower() == "true"
 
-# Create FastAPI application
 app = FastAPI(
     title=API_TITLE,
     version=API_VERSION,
@@ -50,13 +47,11 @@ app = FastAPI(
     openapi_url="/openapi.json" if DOCS_ENABLED else None,
 )
 
-# Include API routes
 app.include_router(router)
 
 
 @app.get("/")
 async def root():
-    """Root endpoint - API welcome message."""
     return {
         "message": API_TITLE,
         "version": API_VERSION,
@@ -67,10 +62,7 @@ async def root():
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    """
-    Last resort for anything the routes didn't catch. The browser gets a
-    generic message and a reference code; the details go to the server log.
-    """
+    """Anything the routes didn't catch: a reference code to the browser, details to the log."""
     ref = secrets.token_hex(3)
     logger.error("Unhandled error [ref %s]", ref, exc_info=exc)
     return JSONResponse(

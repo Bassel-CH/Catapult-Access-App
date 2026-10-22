@@ -1,5 +1,6 @@
 """
-API routes for the Catapult Applications Audit
+The HTTP API, all under /api. Every route except upload, session and health
+works on the caller's session, looked up by current_session().
 """
 import logging
 import secrets
@@ -27,7 +28,6 @@ from ..services.report_service import ReportService
 from ..services.session_service import SessionStore
 from ..utils.exceptions import InvalidCSVError
 
-# Create router
 router = APIRouter(prefix="/api", tags=["audit"])
 
 logger = logging.getLogger("audit.api")
@@ -35,21 +35,16 @@ logger = logging.getLogger("audit.api")
 
 def internal_error(what: str) -> HTTPException:
     """
-    Turn an unexpected exception into a safe 500.
+    A 500 carrying only `what` and a reference code; the full exception, which
+    can include data values, goes to the log under that code.
 
-    The browser only gets `what` plus a short reference code; the full
-    exception (which can include file paths, code details or data values) goes
-    to the server log under that same code. Find it with:
-        docker compose logs backend | grep <code>
-
-    Call it only inside an `except` block — logger.exception() logs the
-    exception currently being handled.
+    Call it inside an `except` block: logger.exception() logs the exception
+    currently being handled.
     """
     ref = secrets.token_hex(3)
     logger.exception("%s [ref %s]", what, ref)
     return HTTPException(status_code=500, detail=f"{what}. Reference: {ref}")
 
-# One private dataset per upload, in memory only (see session_service.py).
 sessions = SessionStore()
 
 
@@ -57,11 +52,11 @@ def current_session(
     x_session_id: Optional[str] = Header(None),
 ) -> UploadedDataset:
     """
-    Look up the caller's dataset from the X-Session-Id header.
+    The caller's dataset, from the X-Session-Id header.
 
-    Missing, unknown and expired ids all get the same 400 "No data loaded"
-    answer — the frontend's isSessionLost() matches that phrase and offers the
-    re-upload recovery, so keep the wording.
+    Missing, unknown and expired ids all get the same 400 "No data loaded". The
+    frontend's isSessionLost() matches that phrase to offer re-upload recovery,
+    so keep the wording.
     """
     dataset = sessions.get(x_session_id)
     if dataset is None:
@@ -76,26 +71,15 @@ async def upload_csv(
     file: UploadFile = File(...),
     x_session_id: Optional[str] = Header(None),
 ):
-    """
-    Upload audit CSV file for processing.
-
-    Expected columns: StaffId, StaffName, StaffEmailAddress, DomainName,
-    PermissionName, PositionName, PermissionSource.
-
-    Junk rows (export dividers, "(N rows affected)" footers, blanks) are
-    dropped automatically; rows_dropped reports how many were removed.
-    """
+    """Load the monthly export and start a new session for it."""
     try:
-        # Case-insensitive, so "July.CSV" is accepted; `or ""` covers an
-        # upload that arrives with no filename at all.
         if not (file.filename or "").lower().endswith('.csv'):
             raise HTTPException(
                 status_code=400,
                 detail="File must be a CSV (.csv extension)"
             )
 
-        # Read at most one byte past the limit: enough to know it's too big
-        # without pulling a huge file into memory.
+        # One byte past the limit is enough to know it's too big.
         content = await file.read(MAX_UPLOAD_SIZE + 1)
         if len(content) > MAX_UPLOAD_SIZE:
             raise HTTPException(
@@ -110,8 +94,7 @@ async def upload_csv(
         dataset = UploadedDataset()
         result = await dataset.process_upload(content, file.filename)
 
-        # Only after a successful parse: drop the caller's previous dataset (if
-        # any) and start a new session. A failed upload leaves the old one alone.
+        # Only now, after a successful parse: a failed upload keeps the old session.
         sessions.end(x_session_id)
         session_id = sessions.create(dataset)
 
@@ -134,7 +117,7 @@ async def upload_csv(
 
 @router.get("/rows", response_model=RowsResponse)
 async def list_rows(dataset: UploadedDataset = Depends(current_session)):
-    """Every row of this session's upload. The app builds its staff list from them."""
+    """Every row of the upload; the app builds its staff list from them."""
     try:
         return RowsResponse(success=True, data=dataset.all_rows())
     except Exception:
@@ -146,10 +129,7 @@ async def review_document(
     request: ReviewDocumentRequest,
     dataset: UploadedDataset = Depends(current_session),
 ):
-    """
-    Generate the printable HTML access-review document for the selected
-    staff. Returns HTML; open in a browser and Save as PDF.
-    """
+    """The printable review packet for the selected staff, as HTML."""
     try:
         html = DocumentService.build_document(
             people=dataset.build_audit_tree(request.staff_names),
@@ -166,14 +146,7 @@ async def audit_tree(
     request: AuditTreeRequest,
     dataset: UploadedDataset = Depends(current_session),
 ):
-    """
-    Build the reviewable access tree for the selected staff.
-
-    Each person is split into a Direct-assignment group (reviewable) plus one
-    group per Position they hold (reference). Every permission carries a stable
-    `id` so the manager's Keep/Revoke decisions can be sent back reliably via
-    /report.
-    """
+    """Each selected staff member's access, with the permission ids decisions use."""
     try:
         people = dataset.build_audit_tree(request.staff_names)
         return AuditTreeResponse(success=True, people=people)
@@ -186,12 +159,7 @@ async def generate_report(
     request: GenerateReportRequest,
     dataset: UploadedDataset = Depends(current_session),
 ):
-    """
-    Generate the COMPLETED audit report from captured Keep/Revoke decisions.
-
-    The Access-cascade rule is applied on the server, so the returned counts
-    and HTML are the authoritative record of the review.
-    """
+    """The completed report. The Access rule is applied here, so this is the record."""
     try:
         people = dataset.build_audit_tree(request.staff_names)
         decisions = {k: v.model_dump() for k, v in request.decisions.items()}
@@ -217,12 +185,7 @@ async def export_filtered_data(
     request: ExportRequest,
     dataset: UploadedDataset = Depends(current_session),
 ):
-    """
-    Export data for selected staff with a department assignment.
-
-    Requires staff_ids and a department name; audit_date defaults to today.
-    Returns a CSV file for download.
-    """
+    """The selected staff's rows as CSV, with department and audit date added."""
     try:
         df = dataset.get_data_by_staff_ids(request.staff_ids)
 
@@ -254,14 +217,13 @@ async def export_filtered_data(
 
 @router.delete("/session")
 async def end_session(x_session_id: Optional[str] = Header(None)):
-    """Forget the caller's dataset now (used by "Start a new audit")."""
+    """Forget the caller's session now ("Start a new audit")."""
     sessions.end(x_session_id)
     return {"success": True}
 
 
 @router.get("/health")
 async def health_check():
-    """Health check endpoint."""
     return {
         "status": "healthy",
         "service": API_TITLE,
