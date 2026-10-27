@@ -17,7 +17,7 @@ from app.services.report_service import ReportService
 SECRET = "/srv/backend/secret_internal_path.py line 42"
 CSV = (
     "StaffId,StaffName,StaffEmailAddress,DomainName,PermissionName,PositionName,PermissionSource\n"
-    "1,Amber Weiss,a@x.com,EHR,Access,,Direct Assignment\n"
+    "1,Jordan Lee,a@x.com,EHR,Access,,Direct Assignment\n"
 )
 
 
@@ -53,7 +53,7 @@ def test_route_error_is_generic_with_reference_and_logged():
     ReportService.render = staticmethod(_boom)
     try:
         r, records = _with_log_capture(
-            lambda: c.post("/api/report", json={"staff_names": ["Amber Weiss"]})
+            lambda: c.post("/api/report", json={"staff_names": ["Jordan Lee"]})
         )
     finally:
         ReportService.render = original

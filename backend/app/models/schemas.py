@@ -145,7 +145,7 @@ class GenerateReportRequest(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "staff_names": ["Amber Weiss"],
+                "staff_names": ["Jordan Lee"],
                 "department": "Operations",
                 "period_label": "July 2026",
                 "manager_name": "Jane Doe",

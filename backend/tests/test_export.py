@@ -14,8 +14,8 @@ client = TestClient(app)
 HEADER_ROW = "StaffId,StaffName,StaffEmailAddress,DomainName,PermissionName,PositionName,PermissionSource\n"
 CSV = (
     HEADER_ROW +
-    "1,Amber Weiss,a@x.com,EHR,Access,,Direct Assignment\n"
-    "2,Brian Wishard,b@x.com,EHR,Access,,Direct Assignment\n"
+    "1,Jordan Lee,a@x.com,EHR,Access,,Direct Assignment\n"
+    "2,Sam Ortiz,b@x.com,EHR,Access,,Direct Assignment\n"
 )
 
 
@@ -39,7 +39,7 @@ def test_export_returns_csv_for_selected_ids_only():
 
     lines = r.text.strip().splitlines()
     assert lines[0].endswith(",Department,AuditDate")
-    assert len(lines) == 2 and "Amber Weiss" in lines[1] and "Brian" not in r.text
+    assert len(lines) == 2 and "Jordan Lee" in lines[1] and "Sam Ortiz" not in r.text
     assert lines[1].endswith(',"Patient ""Support""/Ops - July 2026",2026-07-28')
 
 

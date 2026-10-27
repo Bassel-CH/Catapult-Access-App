@@ -201,8 +201,8 @@ class UploadedDataset:
         Each staff member's access: their direct grants first, then one group
         per position they hold; each group split into apps, then permissions.
 
-        Grouped by StaffName, so related profiles like "Amber Weiss" and
-        "Amber WeissTL" stay separate. A name not in the upload comes back
+        Grouped by StaffName, so related profiles like "Jordan Lee" and
+        "Jordan LeeTL" stay separate. A name not in the upload comes back
         with found=False.
         """
         people: List[Dict[str, Any]] = []

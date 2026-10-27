@@ -9,7 +9,7 @@ from app.services.uploaded_dataset import UploadedDataset
 
 HEADER = "StaffId,StaffName,StaffEmailAddress,DomainName,PermissionName,PositionName,PermissionSource\n"
 ROWS = (
-    "00123,Jené Butler,j@x.com,EHR,Access,NULL,Direct Assignment\n"
+    "00123,Renée Dubois,j@x.com,EHR,Access,NULL,Direct Assignment\n"
     "00456,Ana Muñoz,a@x.com,EHR,Access,Team Lead,Position-Based\n"
 )
 
@@ -26,19 +26,19 @@ def _names(svc):
 
 def test_cp1252_file_reads_accents_correctly():
     # The monthly export's format.
-    assert _names(_load((HEADER + ROWS).encode("cp1252"))) == ["Ana Muñoz", "Jené Butler"]
+    assert _names(_load((HEADER + ROWS).encode("cp1252"))) == ["Ana Muñoz", "Renée Dubois"]
 
 
 def test_utf8_file_reads_accents_correctly():
-    # Used to come out as "JenÃ© Butler".
-    assert _names(_load((HEADER + ROWS).encode("utf-8"))) == ["Ana Muñoz", "Jené Butler"]
+    # Used to come out as "RenÃ©e Dubois".
+    assert _names(_load((HEADER + ROWS).encode("utf-8"))) == ["Ana Muñoz", "Renée Dubois"]
 
 
 def test_excel_csv_utf8_with_bom_is_accepted():
     # Excel "CSV UTF-8" starts with an invisible byte-order mark.
     # Used to fail with "Missing required columns: StaffId".
     svc = _load(("﻿" + HEADER + ROWS).encode("utf-8"))
-    assert _names(svc) == ["Ana Muñoz", "Jené Butler"]
+    assert _names(svc) == ["Ana Muñoz", "Renée Dubois"]
 
 
 def test_staff_ids_keep_leading_zeros():
