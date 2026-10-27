@@ -13,17 +13,17 @@ client = TestClient(app)
 
 CSV = (
     "StaffId,StaffName,StaffEmailAddress,DomainName,PermissionName,PositionName,PermissionSource\n"
-    "1,Amber Weiss,a@x.com,EHR,Access,,Direct Assignment\n"
+    "1,Jordan Lee,a@x.com,EHR,Access,,Direct Assignment\n"
 )
 
 
 def _report(decision):
     r = client.post("/api/upload", files={"file": ("t.csv", io.BytesIO(CSV.encode()), "text/csv")})
     client.headers["X-Session-Id"] = r.json()["session_id"]
-    tree = client.post("/api/audit-tree", json={"staff_names": ["Amber Weiss"]}).json()["people"]
+    tree = client.post("/api/audit-tree", json={"staff_names": ["Jordan Lee"]}).json()["people"]
     pid = tree[0]["groups"][0]["apps"][0]["permissions"][0]["id"]
     return client.post("/api/report", json={
-        "staff_names": ["Amber Weiss"],
+        "staff_names": ["Jordan Lee"],
         "decisions": {pid: {"decision": decision, "note": ""}},
     })
 

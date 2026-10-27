@@ -60,8 +60,8 @@ ids. That's what lets an audit be restored after a restart by re-uploading the
 same file. `_leaf_id` in `backend/app/services/uploaded_dataset.py`.
 
 ### Staff are identified by name
-The export can hold related profiles for one person (for example "Amber Weiss"
-and "Amber WeissTL"), which the audit treats as separate. Grouping is by
+The export can hold related profiles for one person (for example "Jordan Lee"
+and "Jordan LeeTL"), which the audit treats as separate. Grouping is by
 `StaffName`, except the CSV export, which selects by `StaffId`.
 
 ## Reading the export

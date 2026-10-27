@@ -12,7 +12,7 @@ from app.config import MAX_UPLOAD_SIZE
 from app.main import app
 
 HEADER = "StaffId,StaffName,StaffEmailAddress,DomainName,PermissionName,PositionName,PermissionSource\n"
-ROW = "1,Amber Weiss,a@x.com,EHR,Access,,Direct Assignment\n"
+ROW = "1,Jordan Lee,a@x.com,EHR,Access,,Direct Assignment\n"
 
 
 def test_upload_near_the_limit_stays_in_memory():

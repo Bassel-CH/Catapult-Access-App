@@ -1,7 +1,8 @@
 # Phase C — wiring + real-world validation
 
 *A dated record (summer 2026) of the app as it was then. File paths in
-commands have been updated as files moved; everything else is as written.*
+commands have been updated as files moved, and staff names replaced with made-up
+ones; everything else is as written.*
 
 All numbers below came from the **live FastAPI server over real HTTP** (uvicorn
 on loopback, real multipart uploads of `JulyPermissions.csv`), not from the mock
@@ -37,9 +38,9 @@ POST /api/report (9 people)  200      38 ms   report html 136,211 B
 ```
 
 **cp1252 confirmed, with evidence.** The file has exactly 83 non-ASCII bytes and
-every one is `0xE9` — the `é` in `Jené Butler`. Decoded as cp1252 (what the
+every one is `0xE9` — the `é` in `Renée Dubois`. Decoded as cp1252 (what the
 backend does) that name is correct; decoded as UTF-8 it becomes
-`Jen� Butler`. This turns out to matter — see §5.
+`Ren�e Dubois`. This turns out to matter — see §5.
 
 **Junk-row drop confirmed.** The 2 dropped rows are the `-------` divider and the
 `(4961 rows affected)` footer, removed by the `PermissionSource` whitelist rather
@@ -63,7 +64,7 @@ several-fold or this ever runs over a WAN.
 | Header row only | 400 `No permission rows found in this file — it has the right columns but no data rows.` |
 | Only junk rows | 400 `No permission rows found in this file — all 2 row(s) were export noise…` |
 | Any call before upload | 400 `No data loaded. Please upload a CSV first.` |
-| UTF-8 CSV with accents | 200 — **correction (Oct 2026):** the 200 hid garbled names (`Jené` → `JenÃ©`) because cp1252 was tried first and never fails. Fixed by trying UTF-8 first; see `backend/tests/test_csv_reading.py`. |
+| UTF-8 CSV with accents | 200 — **correction (Oct 2026):** the 200 hid garbled names (`Renée` → `RenÃ©e`) because cp1252 was tried first and never fails. Fixed by trying UTF-8 first; see `backend/tests/test_csv_reading.py`. |
 
 No stack traces in any response body (asserted, not eyeballed).
 
@@ -126,7 +127,7 @@ IDENTICAL on all five counts ✓   backend counts reconcile ✓
 
 Three divergences in **ingest**, none in counting:
 
-1. **The prototype silently drops `Jené Butler` from the audit.** It reads the
+1. **The prototype silently drops `Renée Dubois` from the audit.** It reads the
    file with `FileReader.readAsText()`, i.e. as UTF-8, so the cp1252 `é` becomes
    `�` and the name no longer matches. 83 permissions and one whole person
    vanish from a compliance audit with no warning. The backend gets it right.
@@ -172,8 +173,8 @@ startup).
 
 1. **Happy path.** Upload `JulyPermissions.csv`. Expect `4961 rows · 188 users
    loaded · 2 junk rows dropped` and pills `Position-Based: 4163` /
-   `Direct Assignment: 798`. Search `Jené` — the accent must render correctly;
-   if you see `Jen?` or `Jen<?>`, the bytes got re-encoded somewhere client-side.
+   `Direct Assignment: 798`. Search for a staff name with an accent — it must render correctly;
+   if you see `?` or `<?>` in its place, the bytes got re-encoded somewhere client-side.
    First load takes ~0.5 s and moves ~2 MB; anything much slower means the proxy
    isn't being used.
 2. **Full flow.** Type a department, select ~5 people, highlight a couple of

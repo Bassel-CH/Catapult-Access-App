@@ -14,7 +14,7 @@ client = TestClient(app)
 
 CSV = (
     "StaffId,StaffName,StaffEmailAddress,DomainName,PermissionName,PositionName,PermissionSource\n"
-    "1,Amber Weiss,a@x.com,EHR,Access,,Direct Assignment\n"
+    "1,Jordan Lee,a@x.com,EHR,Access,,Direct Assignment\n"
 )
 
 
